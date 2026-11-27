@@ -60,4 +60,22 @@ class TestProbe(unittest.TestCase):
             hooks = json.loads((root/'plugins/t3o-task00-probe/hooks/hooks.json').read_text())['hooks']
             self.assertEqual(hooks['Interrupt'][0]['hooks'][0]['timeout'], 3)
 
+    def test_legacy_mode_uses_native_manifest_and_mcp(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)/'workspace'
+            p.prepare(root, mode='legacy')
+            plugin = root/'plugins/t3o-task00-compat'
+            self.assertFalse((plugin/'plugin.json').exists())
+            self.assertFalse((plugin/'mcp.json').exists())
+            manifest = json.loads((plugin/'.codex-plugin/plugin.json').read_text())
+            self.assertEqual(manifest['name'], 't3o-task00-compat')
+            self.assertEqual(manifest['mcpServers'], './.mcp.json')
+            self.assertEqual(manifest['hooks'], './hooks/hooks.json')
+            mcp = json.loads((plugin/'.mcp.json').read_text())['mcpServers']['t3o_probe']
+            self.assertNotIn('type', mcp)
+            self.assertEqual(mcp['command'], sys.executable)
+            self.assertEqual(mcp['args'], [str(plugin.resolve()/'probe.py'), 'mcp', str(root.resolve())])
+            self.assertIn('t3o-task00-compat@t3o-task00-compat-local', (root/'.codex/config.toml').read_text())
+            self.assertTrue((plugin/'hooks/hooks.json').is_file())
+
 if __name__=='__main__': unittest.main()
