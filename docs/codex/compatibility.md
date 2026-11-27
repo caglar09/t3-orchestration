@@ -10,6 +10,21 @@ Base: main `970ecf51ca15de4f1b19f92981f2994f1f2ba73d`; planning branch at `39317
 - No authenticated local Mac desktop, installed CLI schema or desktop version available in this execution environment. Repository baseline test suite could not be run because checkout failed. No claim of a clean baseline. No live hooks, MCP, App Server turns or UI observations occurred.
 - Official documentation checked on this date. Public contract evidence is not a runtime PASS. Minimum version remains UNVERIFIED.
 
+## Offline probe verification
+The companion probe was syntax-checked with `python3 -m py_compile` (exit 0). Running with no installed Codex returned `BLOCKED: FileNotFoundError` (exit 1), as intended. Both account-only and --live paths executed against a locally written synthetic stdio test double, returning exit 0. The mock emitted terminal notifications before turn/start replies, and the probe correlated them correctly. It exercised two turns, toolOutput request construction, read, two-page cursor and resume; no real inference, real account access, permissions or desktop functionality was tested. The mock is deliberately not a protocol oracle and returns synthetic responses; it is NOT a live capture. The uploaded probe blob SHA `56f22aa683ef3462a667089922ef2cf970a908bd` matches the locally executed file. The mock blob SHA `72da13b7b2babe8e512526b3d24a996a0af16b6b` matches the test double.
+
+Reproduce offline (no Codex login or network required):
+```sh
+python3 -m py_compile docs/codex/probe_app_server.py
+MOCK="$(mktemp)"
+cp docs/codex/fixtures/mock_app_server.py "$MOCK"
+chmod 700 "$MOCK"
+python3 docs/codex/probe_app_server.py --codex "$MOCK"
+python3 docs/codex/probe_app_server.py --codex "$MOCK" --live
+rm "$MOCK"
+```
+Expected: both probe runs exit 0; no mock email in output. These tests are not a substitute for the repository baseline or macOS Gate A.
+
 ## Capability matrix
 
 | Capability | Documentation result | Runtime result / gate |
@@ -31,7 +46,7 @@ Base: main `970ecf51ca15de4f1b19f92981f2994f1f2ba73d`; planning branch at `39317
 | Legacy baseline | commands specified in plan | BLOCKED: checkout DNS failure |
 
 ## Findings that change the proposed design
-1. Native MCP tool hooks now exist: the original README's categorical claim that a Codex hook cannot call an MCP tool is outdated relative to current docs. Test a trusted hook on UserPromptSubmit and Stop with event field templates. The server must already be connected, so lazy startup and fail-open behavior matter. A model-callable tool accepting an arbitrary session_id is **not** trusted identity; direct invocation can forge the argument. Require a distinct trusted channel, connection-level proof or explicit host-side pairing. Never rely on hook failure to enforce server authorization.
+1. Native MCP tool hooks now exist: the original README's stated limitation (a Codex hook cannot both inspect T3 metadata and call a T3 tool) needs re-evaluation relative to current docs; MCP invocation is now documented, but the complete T3-specific workflow is not verified. Test a trusted hook on UserPromptSubmit and Stop with event field templates. The server must already be connected, so lazy startup and fail-open behavior matter. A model-callable tool accepting an arbitrary session_id is **not** trusted identity; direct invocation can forge the argument. Require a distinct trusted channel, connection-level proof or explicit host-side pairing. Never rely on hook failure to enforce server authorization.
 2. Session IDs are not sufficient to distinguish root/fork/subagent in current App Server documentation. A fork may share the root session ID, and subagent hooks report the parent session ID. Store coordinatorThreadId separately and prove the exact caller is the designated root. Reject ambiguity. Test same cwd, manual, fork, native subagent, app-internal job and forged IDs.
 3. A shared App Server is more promising than assuming independent processes can push into the desktop. Public Unix socket transport exists, but docs do not establish that the official desktop exposes its own server to arbitrary local plugins or that desktop can attach to our server. Only use a supported endpoint the user explicitly configured, not process inspection/private IPC. Test two clients on an explicitly owned Unix socket first, then separately test official desktop support.
 4. Prefer investigating `turn/start` with `toolOutput` over synthetic user messages. The documented contract starts a turn from a tool result, queues output when a regular turn is active, and does not mix nonempty user input. `thread/inject_items` is context-only, `turn/steer` requires an active expectedTurnId. Do not assume a delivery idempotency key exists; keep durable inbox/outbox with event id, correlate history before retry, never re-send after uncertain response blindly. Use only an enrolled synthetic coordinator in probes.
@@ -63,7 +78,7 @@ codex app-server generate-ts --out "$SCHEMA_DIR/ts"
 Record desktop version via About, CLI version separately, exit codes and test counts. Compare generated methods and exact field types to documentation, including permission policy and notification shapes. Do not commit entire generated schema or raw account data. If commands differ, use installed CLI help; record differences.
 
 ### B. Isolated App Server
-Run the companion `python3 docs/codex/probe_app_server.py` for handshake/account-only checks, then (explicit opt-in, may use quota) `python3 docs/codex/probe_app_server.py --live`. It opens a disposable empty cwd and only creates its own test thread. Record whether it completes, whether the toolOutput starts a second turn, whether pagination, read and resume work; test interrupt separately as below. It prints only sanitized summaries and local test thread ID. Never paste raw stdout of App Server or account/read response into GitHub. Probe is a draft not yet executed against Codex.
+Run the companion `python3 docs/codex/probe_app_server.py` for handshake/account-only checks, then (explicit opt-in, may use quota) `python3 docs/codex/probe_app_server.py --live`. It opens a disposable empty cwd and only creates its own test thread. Record whether it completes, whether the toolOutput starts a second turn, whether pagination, read and resume work; test interrupt separately as below. It prints only sanitized summaries and local test thread ID. Never paste raw stdout of App Server or account/read response into GitHub. Probe passes an offline synthetic-server smoke test but has not been executed against real Codex.
 - Verify exact server sandbox/approval policy from generated schema and response before live test. Use read-only and never escalate. If managed policy rejects, record and stop.
 - Interrupt test: create another synthetic turn, send turn/interrupt using the exact returned threadId/turnId. Match terminal status interrupted. If task completed first, mark inconclusive, not failure. Do not interrupt a user session.
 - Restart: after owned server exits, start a fresh process and initialize, read the synthetic worker via thread/read then resume with excludeTurns:true. Verify no extra turns; inspect list history.
