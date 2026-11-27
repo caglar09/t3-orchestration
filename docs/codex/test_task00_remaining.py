@@ -78,4 +78,20 @@ class TestProbe(unittest.TestCase):
             self.assertIn('t3o-task00-compat@t3o-task00-compat-local', (root/'.codex/config.toml').read_text())
             self.assertTrue((plugin/'hooks/hooks.json').is_file())
 
+    def test_host_metadata_is_separate_and_redacted(self):
+        result, record = p.echo_record(
+            {'session_id':'fake-session', 'thread_id':'fake-thread', 'origin':'hook'},
+            {'sessionId':'host-session', 'threadId':'host-thread',
+             'x-codex-turn-metadata':{'private':'do-not-log'}}, 'salt')
+        self.assertFalse(result['authenticated'])
+        self.assertEqual(record['host_ids']['session_id'], p.digest('host-session','salt'))
+        self.assertEqual(record['host_ids']['thread_id'], p.digest('host-thread','salt'))
+        self.assertNotEqual(record['host_ids']['session_id'], record['claimed_ids']['session_id'])
+        self.assertNotEqual(record['host_ids']['thread_id'], record['claimed_ids']['thread_id'])
+        self.assertNotIn('host-thread', json.dumps(record))
+        self.assertNotIn('do-not-log', json.dumps(record))
+        _, hook = p.echo_record({}, {'threadId':'host-thread'}, 'salt')
+        self.assertEqual(hook['host_ids']['thread_id'], record['host_ids']['thread_id'])
+        self.assertIsNone(hook['host_ids']['session_id'])
+
 if __name__=='__main__': unittest.main()
