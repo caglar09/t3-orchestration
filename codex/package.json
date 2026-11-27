@@ -10,9 +10,13 @@
   "engines": {
     "node": ">=22"
   },
+  "bin": {
+    "t3o-codex": "./scripts/cli.mjs"
+  },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "doctor": "node scripts/doctor.mjs"
+    "doctor": "node scripts/doctor.mjs",
+    "cli": "node scripts/cli.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2"

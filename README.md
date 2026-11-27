@@ -113,16 +113,23 @@ changes instead of overwriting your reminders. To add another project, run setup
 
 Requirements: macOS (`darwin`), `codex-cli 0.172.0` / Codex Desktop `26.1120.50957`, Node.js `>=22`, Python `>=3.9` (only if memory is enabled).
 
-1. Clone the fork and install isolated Codex dependencies:
+1. Clone the fork, install isolated Codex dependencies, and link the local CLI:
 
    ```bash
    git clone https://github.com/caglar09/t3-orchestration.git ~/t3-orchestration
    npm ci --prefix ~/t3-orchestration/codex
-   node ~/t3-orchestration/codex/scripts/doctor.mjs
+   (cd ~/t3-orchestration/codex && npm link)
+   t3o-codex doctor
    ```
 
-2. Load the native Codex plugin from `~/t3-orchestration/codex/` (`.codex-plugin/plugin.json`) or use direct project-local `.codex/` configuration, then explicitly trust the `UserPromptSubmit` hook (`node hooks/context.mjs`) in Codex **Settings > Hooks** or CLI `/hooks`.
-3. Follow `codex/skills/setup/SKILL.md` in your coordinator thread to run `project_setup` with your out-of-band `pairingCode`.
+2. Inside any existing project directory, initialize or update Codex orchestration in one command:
+
+   ```bash
+   cd /path/to/your-project
+   t3o-codex init                 # or `t3o-codex update --allow-write` to refresh paths/options
+   ```
+
+3. Open the project in Codex App / CLI, trust the `UserPromptSubmit` hook (`hooks/context.mjs`) in **Settings > Hooks** or `/hooks`, and verify `/mcp` lists `t3o_codex` (10 tools). Existing `.codex/` MCP servers/hooks and `.gitignore` remain untouched.
 
 Full guide: [docs/codex/installation.md](docs/codex/installation.md).
 

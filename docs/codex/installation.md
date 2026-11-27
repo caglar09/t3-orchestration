@@ -39,7 +39,27 @@ node ~/t3-orchestration/codex/scripts/doctor.mjs
 
 `doctor.mjs` checks macOS (`darwin`), Node `>=22`, `codex --version`, Python `>=3.9` (only when a configured project has `memoryEnabled: true`), manifest validity, and prints a manual hook-trust checklist. It never reads credentials or mutates global Codex settings.
 
-### 2. Load the plugin in Codex
+### 2. One-command project integration (`t3o-codex` CLI — recommended)
+
+Link the CLI once so you can run `t3o-codex` inside any project directory:
+
+```bash
+(cd ~/t3-orchestration/codex && npm link)
+```
+
+*(Ensure `$(npm prefix -g)/bin` is on your `PATH`; without `npm link`, run `node ~/t3-orchestration/codex/scripts/cli.mjs <command>` directly.)*
+
+Then inside any existing project:
+
+```bash
+cd /path/to/your-project
+t3o-codex init                  # read-only default; merges .codex/config.toml & hooks.json, updates .git/info/exclude, registers in ~/.t3-orchestration/codex/config.json
+t3o-codex update --allow-write  # safely refreshes paths/options without overwriting unrelated .codex/ entries or project ID
+t3o-codex status                # inspect registration and .codex/ files
+t3o-codex uninstall             # removes only t3o_codex entries and config registration; preserves ~/.t3-orchestration/codex/projects/
+```
+
+### 3. Alternative: Native plugin / manual direct setup
 
 The Codex package uses the native plugin layout in `codex/`:
 

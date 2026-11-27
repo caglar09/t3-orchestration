@@ -22,17 +22,15 @@ All Codex orchestration user state lives separately under `~/.t3-orchestration/c
     └── library/                 # optional sourced long-term memory (disabled by default)
 ```
 
-## 1. Install and trust the local plugin
+## 1. Fast one-command setup (`t3o-codex` CLI — recommended)
 
-1. Install Node dependencies in the isolated Codex package:
-   `npm ci --prefix <pluginRoot>` (where `<pluginRoot>` is the `codex/` directory).
-2. Run diagnostics first: `node <pluginRoot>/scripts/doctor.mjs`. Confirm Node `>=22`,
-   `codex` CLI detection, `darwin` platform check, and manifest validation pass.
-3. Load the plugin via Codex's local plugin manifest (`<pluginRoot>/.codex-plugin/plugin.json`,
-   `<pluginRoot>/.mcp.json`, `<pluginRoot>/hooks/hooks.json`) or project-local `.codex/` config
-   for isolated testing.
+1. Install Node dependencies and link the CLI once:
+   `npm ci --prefix <pluginRoot> && (cd <pluginRoot> && npm link)` (or invoke `node <pluginRoot>/scripts/cli.mjs` directly).
+2. Run diagnostics first: `t3o-codex doctor`. Confirm Node `>=22`, `codex` CLI detection, `darwin` platform check, and manifest validation pass.
+3. Inside the target project directory, run:
+   `t3o-codex init` (add `--allow-write`, `--max-workers <1..4>`, or `--memory` as needed; run `t3o-codex update` later to refresh paths/options without overwriting unrelated `.codex/` entries or `project.id`).
 4. **Explicit hook trust:** In Codex Settings -> Hooks (or `/hooks` in CLI), explicitly review and
-   trust the `UserPromptSubmit` hook (`node hooks/context.mjs`). There is no `Stop` hook.
+   trust the `UserPromptSubmit` hook (`hooks/context.mjs`). There is no `Stop` hook.
 5. The hook and MCP bridge stay inert in unrelated or manual sessions.
 
 ## 2. Collect explicit project decisions and out-of-band pairing
