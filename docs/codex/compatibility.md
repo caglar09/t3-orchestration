@@ -135,6 +135,22 @@ Create a disposable marketplace with a minimal plugin according to official pack
 - Compare real thread.id, thread.sessionId, hook session_id, and agent_id if present. Prove exact root binding across new turns/restart and no cross-project mutation. If no verified caller identity or supported explicit out-of-band pairing, stop.
 - Check MCP process PID only in our probe, connection lifecycle during turn/idle and app close/reopen. Do not enumerate or access private desktop IPC; check supported settings only.
 
+### D0. Sequential cross-process desktop wake probe (ready for user-run verification)
+
+The companion script `docs/codex/probe_coordinator_wakeup.py` uses the existing owned stdio transport. It creates a disposable coordinator in server A, verifies its exact initial response and closes A. After the user explicitly confirms that the synthetic chat is open and idle in Codex App, server B reads the persisted coordinator, creates and completes a separate worker, resumes the coordinator and sends exactly one toolOutput-only turn. A third fresh server reads history to verify exactly two completed coordinator turns and the unique expected reply marker. No arbitrary thread IDs are accepted from the command line. No inference without --live, no auto-retries, no approval requests accepted by the inherited transport. The temporary working directory exists for the whole probe; no existing project files or settings are intentionally changed. Existing Codex user configuration still applies. The synthetic conversations are retained.
+
+```sh
+git pull --ff-only
+python3 docs/codex/probe_coordinator_wakeup.py
+python3 docs/codex/probe_coordinator_wakeup.py --live
+```
+
+The live run uses three model turns (may consume quota/credits). When the script pauses, find the synthetic chat containing the printed TASK00_COORD_READY marker in the desktop app, refresh only if needed to locate it, open it and leave it idle. Do not send a message or change settings. Type WAKE in the terminal. Watch the chat without refreshing. Report terminal output, whether TASK00_WAKE_OK appeared automatically, whether the running state was visible, whether it appeared after refresh, and whether it is visible after app restart. If unable to locate the chat or it is active, abort with anything other than WAKE. If the RPC result is uncertain, do not retry delivery to the same chat.
+
+This test distinguishes persistence and external idle-thread turn execution from live UI synchronization. A local status check in B does not attest ownership across other processes; the user must keep the synthetic chat idle. No shared desktop endpoint or concurrent write safety is established even if the UI updates immediately. Shared socket tests in D below, trusted identity, busy-turn queue, interruption, legacy baseline and plugin lifecycle remain separate gates.
+
+Offline verification for this script: `python3 -m unittest discover -s docs/codex -p test_probe_coordinator_wakeup.py -v` (4 tests passed in the assistant sandbox using a protocol double for the helper functions, before upload); `python3 -m py_compile docs/codex/probe_coordinator_wakeup.py` and default dry run exit 0. Local and GitHub blob SHA matched for both files: probe `ac2f0fae19ce4bb955bb81d2e94daf532d5e005e`, tests `c3ac4820e950bd8b0f2494ff7b82cfae517ec52d`. Full real-process wake workflow has not been executed in the assistant environment; legacy baseline still blocked by DNS. The initial RED run failed importing the not-yet-created module; no claim of a full integration test. No product implementation or change to the main branch.
+
 ### D. Shared server / automatic wake feasibility
 On a disposable local server started with documented Unix socket support, use two explicitly authorized clients, one synthetic coordinator and one synthetic worker. Verify generated protocol and socket ownership/permissions before use. Test:
 - Worker root completion -> toolOutput to enrolled coordinator using input:[]; confirm new turn and visible tool output when idle.
