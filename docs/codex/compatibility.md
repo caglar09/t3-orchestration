@@ -115,17 +115,29 @@ No shared desktop endpoint or simultaneous-write safety is established by this p
 
 Decision (owner, 2026-11-27): delayed desktop rendering, including reopening the app to see the result, is acceptable for V1. Live UI synchronization and a shared desktop endpoint are no longer release blockers by themselves. Preserve the owned App Server approach and durable inbox; investigate automatic toolOutput delivery only to explicitly enrolled coordinator threads under verified exclusive execution ownership. If ownership cannot be established, keep the signal pending for the next safe coordinator turn instead of starting another turn blindly. The screenshot and terminal evidence establish sequential wake, not concurrent safety. Do not automate app restarts or access private IPC/storage. Next mandatory gates: legacy baseline and installed schema, local plugin/MCP/hook trust, reliable coordinator identity and ownership, permissions, interrupt/failure/recovery. Shared transport and live rendering can be investigated later unless required to establish safe ownership. TASK-01 remains NO-GO pending the remaining required gates and architecture review.
 
+## Owner-run remaining verification — Test A/B/C
+
+Reported CLI 0.171.0, Node v22.23.0, Python 3.11.5, checkout b9f3121. User-provided terminal evidence (not rerun by assistant):
+- npm ci installed 105 packages, reported two moderate-severity audit findings; package identities not yet supplied. Do not run automatic npm audit fix until reviewed.
+- Legacy Node suite: 12 passed, 0 failed. Memory suite: 4 passed. Codex diagnostic suite: 10 passed. Total 26 successful tests on that revision. Generated installed schema still unreported.
+- Live command/exec read-only control and negative write test PASS. This proves that specific command-execution sandbox, not all desktop/model tool permissions.
+- Two independent worker threads completed; B start reply arrived before A terminal event was observed. This demonstrates overlapping outstanding turns, not guaranteed simultaneous inference.
+- thread/list returned successfully but did not find both registered threads with current filter; discovery INCONCLUSIVE. Registry should use returned owned thread IDs rather than rely on enumeration. Native visibility after reopen was separately proven.
+- turn/interrupt PASS for owned synthetic worker; failed terminal and busy coordinator ownership remain pending.
+- Test C preparation and Git init PASS. Screenshot shows portable manifest, marketplace and project config created. Desktop conversation reports no injected marker and echo_probe unavailable. No event report or plugin installation/trust state supplied yet. FAIL for observed availability, exact cause not established.
+- Updated diagnostic generator supports --mode direct (project-local .codex/config.toml and .codex/hooks.json) to isolate plugin discovery from hooks/MCP. Interrupt hook timeout corrected to 3 seconds. New test assertions added; latest revision has not been executed on macOS or in assistant runtime. Repo files verified via GitHub read-back. Retest only C, and optionally run updated offline suite. Direct mode does not prove plugin packaging or trusted identity. Do not start product implementation until the remaining security gates are settled.
+
 ## Capability matrix
 
 | Capability | Documentation result | Runtime result / gate |
 | --- | --- | --- |
-| Local marketplace / plugin | root plugin.json; extensions.com.openai hooks; local installation; user trust separate | BLOCKED: install and trust on desktop |
-| MCP local stdio | command/args/env/cwd; lazy startup can defer connection | BLOCKED: real desktop calls, connection lifetime |
-| Hook context | UserPromptSubmit with session_id, turn_id; additionalContext | BLOCKED: capture IDs and output on actual build |
+| Local marketplace / plugin | root plugin.json; extensions.com.openai hooks; local installation; user trust separate | FAIL observed availability in Test C; install/trust status unconfirmed |
+| MCP local stdio | command/args/env/cwd; lazy startup can defer connection | FAIL observed tool availability; direct project configuration test pending |
+| Hook context | UserPromptSubmit with session_id, turn_id; additionalContext | FAIL observed injected marker; hook trust and direct mode pending |
 | Native MCP hook | type:mcp_tool; event-field expansion; existing connection only; no SessionEnd support | BLOCKED: check support and caller isolation |
 | Reliable coordinator identity | thread.sessionId and thread.id are distinct for forks; subagent hooks use parent session ID | BLOCKED: trusted thread/call identity required; no session-only authorization |
 | App Server handshake / schema | stdio JSONL; initialize + initialized; generate-json-schema, generate-ts | PASS (user-run owned stdio handshake on 0.171.0); schema generation pending |
-| Worker lifecycle | thread/start, turn/start, turn/completed (completed/interrupted/failed), thread/read, thread/resume, turn/interrupt | PARTIAL PASS: start, completed turns, read and sequential fresh-process resume; interrupt/failure, permissions and exact wire captures pending |
+| Worker lifecycle | thread/start, turn/start, turn/completed (completed/interrupted/failed), thread/read, thread/resume, turn/interrupt | PARTIAL PASS: start, completed turns, read and sequential fresh-process resume; interrupt PASS; two workers completed; failure and exact wire captures pending |
 | History / pagination | thread/turns/list, thread/items/list; thread/read metadata; opaque cursors | PARTIAL PASS: thread/turns/list two pages and history persisted across A/B/C; items pagination and crash recovery pending |
 | Account / limits | account/read, account/rateLimits/read; account may be null; secondary may be null | PASS (user-run): ChatGPT login check and rate-limit response present; exact nullable-field schema pending |
 | Worker discoverability | persistent root threads; thread/list sourceKinds includes appServer; default filter interactive sources only | PASS (user-reported): sidebar after refresh, worker and coordinator visible after reopen; immediate refresh-free discovery FAIL in wake run; explicit thread/list probe pending |
@@ -133,7 +145,7 @@ Decision (owner, 2026-11-27): delayed desktop rendering, including reopening the
 | Shared server access | documented Unix socket and remote CLI; TCP WebSocket experimental/unsupported | BLOCKED: supported desktop-owned/shared server endpoint, permissions, attachment semantics |
 | App lifetime / restart | resume by thread ID, no automatic duplicate turn | PARTIAL PASS: sequential fresh-process resume/read and desktop reopen persistence; crash recovery, MCP lifetime and simultaneous ownership pending |
 | Native scheduler | not assessed in this execution; defer | BLOCKED / optional |
-| Legacy baseline | commands specified in plan | BLOCKED: checkout DNS failure |
+| Legacy baseline | commands specified in plan | PASS owner-run legacy 12 Node + 4 Python tests; 2 moderate npm audit findings pending review |
 
 ## Findings that change the proposed design
 1. Native MCP tool hooks now exist: the original README's stated limitation (a Codex hook cannot both inspect T3 metadata and call a T3 tool) needs re-evaluation relative to current docs; MCP invocation is now documented, but the complete T3-specific workflow is not verified. Test a trusted hook on UserPromptSubmit and Stop with event field templates. The server must already be connected, so lazy startup and fail-open behavior matter. A model-callable tool accepting an arbitrary session_id is **not** trusted identity; direct invocation can forge the argument. Require a distinct trusted channel, connection-level proof or explicit host-side pairing. Never rely on hook failure to enforce server authorization.
