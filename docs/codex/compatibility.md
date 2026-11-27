@@ -143,6 +143,14 @@ Decision (owner, 2026-11-27): delayed desktop rendering, including reopening the
 5. `thread/list` defaults to interactive sources (cli/vscode). Explicit `sourceKinds:["appServer"]` is required for a meaningful positive discovery probe; it does not prove sidebar filtering. Use persistent non-ephemeral workers and test separately whether desktop lists them and can safely reopen them.
 6. The owner accepts delayed UI rendering for V1; retain the separate-owned-bridge architecture. Shared desktop transport and live UI sync are optional follow-ups. Safe automatic wake requires verified coordinator identity and exclusive execution ownership; otherwise retain the durable next-prompt inbox only if identity and core lifecycle pass. If identity cannot be verified, stop rather than ship an unsafe port.
 
+## Remaining diagnostic package (2026-11-27)
+
+The owner asked to complete outstanding preparation and will run the local checks. See [task00-local-verification.md](./task00-local-verification.md) for the consolidated commands and result criteria. Added:
+- `task00_remaining.py`: isolated temporary marketplace, project-local plugin, command hook, stdio MCP echo, Stop MCP hook, redacted event report. No production authorization or worker-launch tool. Claimed IDs and origin are never trusted.
+- `probe_lifecycle.py`: read-only sandbox positive/negative control, two distinct owned threads, terminal event correlation, discovery and interruption. No inference unless --live.
+- `test_task00_remaining.py` and `test_probe_lifecycle.py`: six offline tests passed in the assistant sandbox; py_compile passed. Verified fetched Git blob hashes against locally tested files. Test doubles are not native Codex evidence. Initial test-first runs failed import because modules did not exist; no claim of full red-green behavioral coverage.
+- Remaining baseline, generated installed-version schema, local marketplace loading, trust, MCP lifetime/identity, actual sandbox, lifecycle and ownership gates await owner execution. Do not label TASK-00 complete or start production implementation just because the diagnostic package exists. CLI not available and GitHub DNS failed in this assistant runtime. The actual desktop-to-worker launch and auto-delivery must remain disabled until safe authorization/ownership is established. The default fallback remains durable inbox. Live UI rendering and shared endpoint are optional V1 improvements.
+
 ## Local verification runbook
 
 Use a disposable checkout and synthetic chats. Never change existing user/project settings without consent; do not read credential files, private databases or raw rollout logs. No auto-approval, no external calls in probe prompts, no secrets in committed evidence. Inference can consume existing plan quota/credits; only run inference after confirming the intended account and model.
