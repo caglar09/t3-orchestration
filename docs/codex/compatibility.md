@@ -150,6 +150,10 @@ Add the new workspace in Codex App, select **T3O TASK-00 Compatibility Probe** f
 
 Owner supplied a screenshot showing `echo_probe` unavailable in the native conversation after the compatibility-format retest. The screenshot alone does not establish whether the new package was enabled, project trust was granted, or MCP discovery failed after startup. No new event report or CLI warning details supplied for this run. Do not infer the exact root cause or claim a fix. Stop iterating on plugin packaging and use the already implemented `--mode direct` control: start the generated stdio server manually with an initialize/tools/list request, verify the exact project is trusted in Codex CLI, use `/mcp` and `/hooks` in a fresh CLI session, then repeat in desktop. Record redacted outputs for each boundary. The portable and compatibility packages are not release-ready. No inference is needed for initial discovery. Do not change global MCP settings or bypass hook/project trust. No new production code change. Reference: https://developers.openai.com/plugins/build/plugins (trusted-project config and separate hook trust).
 
+## Standalone MCP transport control — PASS (owner-run)
+
+The owner ran the legacy-generated `plugins/t3o-task00-compat/probe.py` directly with JSON-RPC initialize (protocolVersion 2025-03-26) and tools/list over stdin. Both returned valid success responses; serverInfo name t3o_probe, capabilities.tools present; tools/list includes echo_probe with its input schema and readOnlyHint. This confirms the Python script starts in the user's environment and handles these two requests outside Codex. It does not prove full MCP lifecycle negotiation, Codex-managed startup or tool invocation. The earlier missing .codex/probe.py was a path mismatch (legacy versus direct mode), not a protocol error. Next use a distinct direct-mode workspace to isolate project-local config loading; compare /mcp and /hooks in a fresh trusted CLI session before sending inference. No further plugin manifest changes pending this evidence.
+
 ## Capability matrix
 
 | Capability | Documentation result | Runtime result / gate |
