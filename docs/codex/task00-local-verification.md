@@ -4,6 +4,21 @@ Status: diagnostic implementation ready for owner-run tests; NOT a production pl
 
 Run from the existing fork checkout on `docs/codex-app-support-plan`. Do not use real project conversations. These probes intentionally keep synthetic chats in history. No private Codex files, database or socket inspection.
 
+## Codex 0.171.0 native compatibility retest
+
+User reported that even Try now in the portable plugin's native detail page exposed no echo tool, CLI MCP list did not include the probe, and the diagnostic event log was empty. Exact tagged Codex source reveals two implementation constraints: [portable stdio parser lines 150–175](https://github.com/openai/codex/blob/rust-v0.171.0/codex-rs/codex-mcp/src/agent_plugin_config.rs#L150-L175) rejects absolute command paths; [loader lines 942–955](https://github.com/openai/codex/blob/rust-v0.171.0/codex-rs/core-plugins/src/loader.rs#L942-L955) skips hooks for AgentPlugin format. The original portable diagnostic violated the first and relied on hooks in the second. This explains both symptoms at the source-contract level, but the new runtime has not been tested. Current documentation is not a substitute for installed-version source. Use `--mode legacy`, generating a distinct marketplace/plugin ID `t3o-task00-compat@t3o-task00-compat-local` v0.1.1 with only `.codex-plugin/plugin.json`, `.mcp.json` and native hooks. Do not mix root portable and native manifests. Old portable mode is retained as a historical negative control; CLI prepare defaults to legacy. Direct project mode remains an alternate isolation probe. No global MCP configuration mutation, no production authorization, no upgrade required. `codex mcp list` alone is not conclusive for plugin-managed servers; use a new native chat's actual tool call and event report. Trust project and hooks explicitly. New layout test added; not executed in the assistant environment. TASK-01 remains blocked on live MCP/hook identity and ownership gates.
+
+```bash
+git pull --ff-only
+PROBE_ROOT="$(mktemp -d)/workspace"
+python3 docs/codex/task00_remaining.py prepare "$PROBE_ROOT" --mode legacy
+git -C "$PROBE_ROOT" init -q
+echo "$PROBE_ROOT"
+python3 -m unittest discover -s docs/codex -p 'test_*.py' -v
+```
+
+Add the new workspace in Codex App, select **T3O TASK-00 Compatibility Probe** from its local marketplace and use Try now in a new local chat. Call echo_probe with origin=direct and session_id=FAKE_TASK00_ID. Review and trust the probe hooks in Settings or CLI /hooks; send the hook marker prompt in a new chat. Run `python3 docs/codex/task00_remaining.py report "$PROBE_ROOT"` and send sanitized results. If it fails, send startup warnings (F2) and hook list; do not blindly retry or alter global settings.
+
 ## 1. Baseline, versions, schema (no model inference)
 
 ```bash
