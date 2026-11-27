@@ -1,7 +1,7 @@
 # TASK-00 — Codex App compatibility and contract verification
 
 Date: 2026-11-27
-Status: IN PROGRESS — live owned-server probe PASS (user-reported, CLI 0.171.0); desktop/identity gates pending. **NO-GO for TASK-01**.
+Status: IN PROGRESS — owned-server probe and refreshed desktop visibility PASS (user-reported, CLI 0.171.0 / App 26.1120.50957); native wake, identity and remaining gates pending. **NO-GO for TASK-01**.
 Base: main `970ecf51ca15de4f1b19f92981f2994f1f2ba73d`; planning branch at `39317f06e29cfd13b35667cc5401700d139a2b1a` before this task. Source review and local test runbook only; no product implementation.
 
 ## Evidence actually collected
@@ -26,7 +26,7 @@ rm "$MOCK"
 Expected: both probe runs exit 0; no mock email in output. These tests are not a substitute for the repository baseline or macOS Gate A.
 
 ## User-run live evidence — Codex CLI 0.171.0
-Source: terminal output supplied by the repository owner in this conversation, not an independently executed test in the assistant environment. Actual desktop build, local Node/Python versions, generated schema, shell exit codes and baseline suite remain unreported. CLI 0.171.0 is a tested version, not a minimum supported version.
+Source: terminal output supplied by the repository owner in this conversation, not an independently executed test in the assistant environment. Local Node/Python versions, generated schema, shell exit codes and baseline suite remain unreported. Desktop build and UI results are recorded separately below. CLI 0.171.0 is a tested version, not a minimum supported version.
 
 Commands and sanitized output:
 ```text
@@ -58,7 +58,16 @@ Owned-server probe finished. Desktop visibility, identity, idle cross-client wak
 
 Interpretation: the owned stdio server accepted initialization, ChatGPT account check, rate-limit read, persistent thread creation, first text turn and second toolOutput-only turn; both emitted completed terminal notifications. The probe observed a nonempty nextCursor and successfully requested a second page, then resumed the thread in the same process. This does not validate semantic response contents, exact approval/sandbox enforcement, restart recovery, failed/interrupted events, cross-client delivery, busy-turn queuing or official desktop rendering. It also does not establish that the app exposes a shared endpoint. No real thread identifiers or account details retained.
 
-Next observation: open official Codex desktop and look for the synthetic conversation with first prompt containing TASK00_PROBE_OK (including global thread/history view if available). Record sidebar visibility without restarting, after refresh/reopen, and whether opening shows both turns. The probe uses a temporary cwd which is deleted at exit; absence in project-scoped listing alone is inconclusive. Do not rerun inference merely to test visibility. Report desktop build separately. Complete legacy baseline and schema checks; proceed with shared-server/identity tests only under the existing runbook.
+## User-run native desktop visibility evidence
+Date: 2026-11-27. CLI 0.171.0; official Codex App build 26.1120.50957 (user-reported).
+- The synthetic persistent thread created by the independently owned stdio App Server became visible in the native sidebar after refresh.
+- Both turns were visible when opening the conversation.
+- The thread remained visible after closing and reopening Codex App.
+- The owner also supplied a screenshot in the conversation as supporting evidence; the image is not committed to avoid exposing local identifiers or unrelated chats.
+
+Result: PASS for refreshed native visibility, two-turn history display and desktop restart persistence in this tested environment. Immediate sidebar visibility, real-time stream synchronization, simultaneous ownership, API restart recovery, external wake of an already open desktop coordinator, supported shared endpoint, plugin/MCP trust and verified identity remain unproven. Do not infer a shared live App Server from discoverability of persisted sessions. No minimum version claim.
+
+Next: complete baseline and installed schema checks; then test read/resume and external toolOutput against an explicitly enrolled idle synthetic thread from a second owned server after closing its original owner; observe the open desktop UI without refresh and after refresh. No concurrent writes to a running thread. Separately test supported shared-server transport if available and trusted coordinator identity.
 
 ## Capability matrix
 
@@ -73,10 +82,10 @@ Next observation: open official Codex desktop and look for the synthetic convers
 | Worker lifecycle | thread/start, turn/start, turn/completed (completed/interrupted/failed), thread/read, thread/resume, turn/interrupt | PARTIAL PASS: start, two completed turns, read, same-process resume; interrupt/failure, permissions and exact wire captures pending |
 | History / pagination | thread/turns/list, thread/items/list; thread/read metadata; opaque cursors | PARTIAL PASS: thread/turns/list two pages; items pagination and restart recovery pending |
 | Account / limits | account/read, account/rateLimits/read; account may be null; secondary may be null | PASS (user-run): ChatGPT login check and rate-limit response present; exact nullable-field schema pending |
-| Worker discoverability | persistent root threads; thread/list sourceKinds includes appServer; default filter interactive sources only | PARTIAL PASS: persistent thread creation accepted; thread/list and desktop visibility pending |
+| Worker discoverability | persistent root threads; thread/list sourceKinds includes appServer; default filter interactive sources only | PASS (user-reported): sidebar after refresh, both turns, desktop reopen; immediate refresh-free visibility and explicit thread/list probe pending |
 | Coordinator notification | turn/start with toolOutput (empty input); active turn queues output; thread/inject_items persists context but does not start a turn; turn/steer requires active turn | PARTIAL PASS: toolOutput-only second turn completed on owned server; cross-client delivery, native idle wake, busy queue, dedupe pending |
 | Shared server access | documented Unix socket and remote CLI; TCP WebSocket experimental/unsupported | BLOCKED: supported desktop-owned/shared server endpoint, permissions, attachment semantics |
-| App lifetime / restart | resume by thread ID, no automatic duplicate turn | PARTIAL PASS: same-process resume; restart, MCP lifetime and ownership pending |
+| App lifetime / restart | resume by thread ID, no automatic duplicate turn | PARTIAL PASS: same-process resume and desktop reopen persistence; API process restart recovery, MCP lifetime and ownership pending |
 | Native scheduler | not assessed in this execution; defer | BLOCKED / optional |
 | Legacy baseline | commands specified in plan | BLOCKED: checkout DNS failure |
 
