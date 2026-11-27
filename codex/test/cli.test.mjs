@@ -399,4 +399,18 @@ test("runCli supports t3-providers, t3-route, and t3-brief for T3 Code multi-LLM
   assert.match(briefJson.brief, /\[T3O_WORKER_V1\]/);
   assert.match(briefJson.brief, /t3_thread_send/);
   assert.match(briefJson.brief, /\[T3O_SIGNAL_V1\]/);
+
+  // 5. t3-hook installs hooks/t3-context.mjs into .codex/hooks.json without creating standalone t3o_codex MCP
+  const repo = makeFakeGitRepo(base, "t3-hook-proj");
+  const hookIo = capture();
+  assert.equal(
+    await runCli(["t3-hook", repo, "--project", "demo", "--json"], hookIo),
+    0,
+  );
+  const hookJson = JSON.parse(hookIo.out);
+  assert.equal(hookJson.action, "t3-hook");
+  assert.equal(fs.existsSync(path.join(repo, ".codex", "config.toml")), false);
+  const hooksContent = fs.readFileSync(path.join(repo, ".codex", "hooks.json"), "utf8");
+  assert.match(hooksContent, /hooks\/t3-context\.mjs/);
+  assert.match(hooksContent, /--project 'demo'/);
 });

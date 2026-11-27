@@ -42,9 +42,12 @@ Verify with `t3o-codex t3-route --project <name> --tier simple --json` and `--ti
 1. Check `~/.t3-orchestration/config.json` first; if this `projectId` or `name` is already registered, ask whether to replace it instead of creating a duplicate coordinator.
 2. Create an idle Coordinator thread in T3 Code using `t3_thread_launch` (`projectId`, title `Orchestration`, no `message`, and `modelSelection` pointing to the user's chosen Codex instance). Keep the returned `threadId` and link, and suggest pinning it.
 3. Create `~/.t3-orchestration/projects/<name>/`:
-   - Fill `codex/templates/t3-coordinator.md` → `~/.t3-orchestration/projects/<name>/coordinator.md`
-   - Fill `codex/templates/t3-worker-non-claude.md` → `~/.t3-orchestration/projects/<name>/worker.md`
+   - Fill `codex/templates/t3-coordinator.md` → `~/.t3-orchestration/projects/<name>/coordinator.md`, replacing `{{PROJECT_NAME}}`, `{{COORDINATOR_THREAD_ID}}`, `{{PLUGIN_ROOT}}` (absolute path to the `codex/` directory containing `skills/t3-orchestrate/SKILL.md`), and `{{PROJECT_RULES}}`.
+   - Fill `codex/templates/t3-worker-non-claude.md` → `~/.t3-orchestration/projects/<name>/worker.md`.
 4. Back up `~/.t3-orchestration/config.json` if it exists, then add the project entry (`name`, `projectId`, `coordinatorThreadId`, `memoryThreadId: null`, `excludedThreadIds: [<setup thread id>]`, `libraryPath: null`).
+   - **Mandatory `projectId` verification:** Read back the newly launched `Orchestration` thread with `t3_thread_read` and copy its exact `thread.projectId` verbatim into `config.json`. Never transcribe or guess UUIDs by hand.
+   - **Avoid MCP collision:** If the project directory also has standalone `t3o_codex` in `.codex/config.toml` and the user wants T3 Code orchestration only, advise running `t3o-codex uninstall <projectDir>` so the Codex coordinator only sees `t3-code` MCP tools.
+   - **Enable per-prompt coordinator reminder hook:** Run `t3o-codex t3-hook <projectDir> --project <name>` so `.codex/hooks.json` injects a fail-closed `UserPromptSubmit` reminder on every turn (preventing the coordinator from drifting into direct code exploration or Codex native subagents). Remind the user to trust `UserPromptSubmit` in Codex `/hooks` if prompted.
    - Because `coordinatorThreadId` lives in `~/.t3-orchestration/config.json`, any **Claude worker** launched by this Codex coordinator automatically fires `hooks/register.mjs` (`Stop` hook) and wakes up the Codex coordinator via `t3_thread_send`.
    - Any **non-Claude worker** (Codex, Antigravity, OpenCode, etc.) wakes up the Codex coordinator using the mandatory `t3_thread_send` protocol embedded by `t3o-codex t3-brief`.
 

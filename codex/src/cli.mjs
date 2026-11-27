@@ -25,6 +25,7 @@ import {
 const BEGIN_MARKER = "# BEGIN t3-orchestration-codex";
 const END_MARKER = "# END t3-orchestration-codex";
 const HOOK_CONTEXT_SUBSTR = "hooks/context.mjs";
+const T3_HOOK_SUBSTR = "hooks/t3-context.mjs";
 const DEFAULT_PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function shellQuote(value) {
@@ -195,6 +196,48 @@ function ensureGitExclude(targetRoot) {
   const prefix = current.length > 0 && !current.endsWith("\n") ? `${current}\n` : current;
   fs.writeFileSync(excludePath, `${prefix}.codex/\n`, "utf8");
   return true;
+}
+
+function isManagedT3HookEntry(entry) {
+  if (!entry || typeof entry !== "object" || !Array.isArray(entry.hooks)) return false;
+  return entry.hooks.some(
+    (h) => h && typeof h === "object" && typeof h.command === "string" && h.command.includes(T3_HOOK_SUBSTR),
+  );
+}
+
+export function installT3Hook({
+  targetDir = process.cwd(),
+  projectName,
+  pluginRoot = DEFAULT_PLUGIN_ROOT,
+  nodeExec = process.execPath,
+  excludeGit = true,
+} = {}) {
+  const root = resolveCanonicalTargetDir(targetDir);
+  const slug = projectName || deriveSlug(root);
+  const hooksPath = path.join(root, ".codex", "hooks.json");
+  const parsed = readExistingHooks(hooksPath);
+  const hookScript = path.join(path.resolve(pluginRoot), "hooks", "t3-context.mjs");
+  const command = `${shellQuote(nodeExec)} ${shellQuote(hookScript)} --project ${shellQuote(slug)}`;
+  const managedEntry = {
+    hooks: [{ type: "command", command, timeout: 3 }],
+  };
+
+  const existingSubmit = Array.isArray(parsed.hooks.UserPromptSubmit)
+    ? parsed.hooks.UserPromptSubmit.filter((entry) => !isManagedT3HookEntry(entry))
+    : [];
+  parsed.hooks.UserPromptSubmit = [...existingSubmit, managedEntry];
+
+  fs.mkdirSync(path.dirname(hooksPath), { recursive: true });
+  fs.writeFileSync(hooksPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+  const gitExcludeAdded = excludeGit ? ensureGitExclude(root) : false;
+
+  return {
+    action: "t3-hook",
+    root,
+    project: slug,
+    hooksPath,
+    gitExcludeAdded,
+  };
 }
 
 function hasGitExclude(targetRoot) {
@@ -502,6 +545,7 @@ Usage:
   t3o-codex t3-providers [options]     List enabled T3 Code LLM providers & models
   t3o-codex t3-route [options]         Select or configure simple/standard/complex T3 LLM routing
   t3o-codex t3-brief [options]         Generate modelSelection + wake-up brief for t3_thread_launch
+  t3o-codex t3-hook [dir] [options]    Install per-prompt T3 Coordinator reminder hook in .codex/hooks.json
 
 Options:
   --name <slug>            Project slug (default: derived from directory name)
@@ -616,6 +660,13 @@ export async function runCli(
           routingPolicy: policy,
         });
       }
+    } else if (subcommand === "t3-hook") {
+      result = installT3Hook({
+        targetDir,
+        ...(flags.project ? { projectName: flags.project } : {}),
+        ...(flags.pluginRoot ? { pluginRoot: flags.pluginRoot } : {}),
+        excludeGit: flags.excludeGit,
+      });
     } else if (subcommand === "t3-brief") {
       const routingPath = flags.routingPath ?? defaultT3RoutingPath();
       const { providers } = readT3Providers({
@@ -673,6 +724,11 @@ export async function runCli(
       }
     } else if (subcommand === "t3-brief") {
       io.stdout(`${result.brief}\n`);
+    } else if (subcommand === "t3-hook") {
+      io.stdout(
+        `[t3o-codex] Installed T3 Coordinator reminder hook for "${result.project}" at ${result.hooksPath}\n` +
+        `  - Next: trust UserPromptSubmit in Codex /hooks if prompted; this hook stays fail-closed in manual chats.\n`,
+      );
     } else if (subcommand === "init" || subcommand === "update") {
       io.stdout(
         `[t3o-codex] ${subcommand} complete for "${result.project.name}" (${result.project.root})\n` +

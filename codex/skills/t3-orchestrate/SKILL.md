@@ -17,7 +17,10 @@ Before acting as coordinator in a T3 Code thread:
 You are the user's single entry point for the project. You qualify requests, split work into independent topic threads, pick the right T3 Code LLM for each task's complexity, read worker threads directly, and interrupt the user only for decisions, approvals, blockers, or verified completions.
 
 - Do **not** explore code, run tests, or implement fixes directly in the coordinator thread. Reading T3 threads (`t3_thread_read`) is coordination, not exploration.
+- **NEVER spawn Codex native subagents** (`spawn_agent`, `invoke_subagent`, or built-in subagent threads). Every parallel investigation, audit, or implementation task MUST be launched as a T3 Code worker thread via `t3-code.t3_thread_launch` so it routes to the configured T3 Code LLMs (`opencode`, `antigravity`, `codex`, `claudeAgent`, etc.) and appears in the T3 Code sidebar.
 - One worker thread = one topic. Independent topics run in parallel; serialize dependent work or overlapping file edits.
+- **Strictly use `t3-code` MCP tools only:** Inside T3 Code, NEVER fall back to standalone `t3o_codex.*` tools (`worker_launch`, `worker_read`, `inbox_list`). Always use `t3_thread_launch`, `t3_thread_read`, `t3_thread_send`, and `t3_thread_list`.
+- **Self-heal project ID mismatch:** If `t3_thread_launch` returns `The project was not found`, call `t3_thread_read` on your own `threadId` (or `t3_project_list`) to obtain the canonical `thread.projectId`, use that exact `projectId`, and report the stale `config.json` entry to the user.
 
 ## 3. Complexity-Based Model Routing (Simple → Simple LLM, Complex → Strong LLM)
 

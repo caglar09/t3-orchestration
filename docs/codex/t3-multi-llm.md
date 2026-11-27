@@ -44,4 +44,9 @@ you ──► Codex Coordinator (in T3 Code)
      --tier simple --json
    ```
 
-5. Inside T3 Code, open a Codex thread in your project and follow [codex/skills/t3-setup/SKILL.md](../../codex/skills/t3-setup/SKILL.md) to create and pin your `Orchestration` coordinator thread. Once set up, the coordinator follows [codex/skills/t3-orchestrate/SKILL.md](../../codex/skills/t3-orchestrate/SKILL.md).
+5. Enable the per-prompt fail-closed Coordinator reminder hook in your project (prevents Codex from drifting into direct code exploration or native `spawn_agent` subagents):
+   ```bash
+   t3o-codex t3-hook /path/to/your-project --project my-app
+   ```
+
+6. Inside T3 Code, open a Codex thread in your project and follow [codex/skills/t3-setup/SKILL.md](../../codex/skills/t3-setup/SKILL.md) to create and pin your `Orchestration` coordinator thread. Once set up, the coordinator follows [codex/skills/t3-orchestrate/SKILL.md](../../codex/skills/t3-orchestrate/SKILL.md).
