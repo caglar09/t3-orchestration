@@ -1,0 +1,70 @@
+{
+  "codexCliVersion": "0.172.0",
+  "schemaSource": "codex app-server generate-json-schema",
+  "transport": {
+    "kind": "stdio-jsonl",
+    "framing": "newline-delimited-json",
+    "contentLengthHeader": false
+  },
+  "handshake": {
+    "request": "initialize",
+    "requiredParams": ["clientInfo"],
+    "requiredResponseFields": ["codexHome", "platformFamily", "platformOs", "userAgent"],
+    "postInitializeNotification": "initialized"
+  },
+  "methods": {
+    "thread/start": {
+      "optionalParams": ["cwd", "sandbox", "approvalPolicy", "baseInstructions", "developerInstructions", "ephemeral", "config"],
+      "sandboxValues": ["read-only", "workspace-write", "danger-full-access"],
+      "approvalPolicyValues": ["untrusted", "on-request", "never"],
+      "requiredResponseFields": ["approvalPolicy", "approvalsReviewer", "cwd", "model", "modelProvider", "sandbox", "thread"]
+    },
+    "turn/start": {
+      "requiredParams": ["threadId", "input"],
+      "optionalParams": ["approvalPolicy", "sandboxPolicy", "toolOutput", "cwd", "model", "effort", "summary"],
+      "sandboxPolicyTypes": ["readOnly", "workspaceWrite"],
+      "requiredResponseFields": ["turn"]
+    },
+    "thread/read": {
+      "requiredParams": ["threadId"],
+      "optionalParams": ["includeTurns"],
+      "requiredResponseFields": ["thread"]
+    },
+    "thread/turns/list": {
+      "requiredParams": ["threadId"],
+      "optionalParams": ["cursor", "limit", "itemsView", "sortDirection"],
+      "itemsViewValues": ["notLoaded", "summary", "full"],
+      "sortDirectionValues": ["asc", "desc"],
+      "requiredResponseFields": ["data"]
+    },
+    "thread/resume": {
+      "requiredParams": ["threadId"],
+      "requiredResponseFields": ["approvalPolicy", "approvalsReviewer", "cwd", "model", "modelProvider", "sandbox", "thread"]
+    },
+    "turn/interrupt": {
+      "requiredParams": ["threadId", "turnId"]
+    },
+    "account/read": {
+      "optionalParams": ["refreshToken"],
+      "requiredResponseFields": ["requiresOpenaiAuth"]
+    },
+    "account/rateLimits/read": {
+      "requiredResponseFields": ["rateLimits"]
+    }
+  },
+  "notifications": {
+    "turn/completed": {
+      "requiredFields": ["threadId", "turn"],
+      "turnStatuses": ["completed", "interrupted", "failed", "inProgress"]
+    }
+  },
+  "serverRequests": {
+    "item/commandExecution/requestApproval": { "safeRefusal": { "decision": "decline" } },
+    "item/fileChange/requestApproval": { "safeRefusal": { "decision": "decline" } },
+    "applyPatchApproval": { "safeRefusal": { "decision": { "denied": { "rejection": "Automatic approval is disabled" } } } },
+    "execCommandApproval": { "safeRefusal": { "decision": { "denied": { "rejection": "Automatic approval is disabled" } } } },
+    "mcpServer/elicitation/request": { "safeRefusal": { "action": "decline" } },
+    "item/permissions/requestApproval": { "safeRefusal": { "permissions": {} } },
+    "unknownMethodError": { "code": -32601, "message": "Method not supported" }
+  }
+}

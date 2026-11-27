@@ -1,0 +1,73 @@
+{
+  "firstPageRequest": {
+    "id": 7,
+    "method": "thread/turns/list",
+    "params": {
+      "threadId": "thread-synth-worker-001",
+      "limit": 1,
+      "itemsView": "summary",
+      "sortDirection": "asc"
+    }
+  },
+  "firstPageResponse": {
+    "id": 7,
+    "result": {
+      "data": [
+        {
+          "id": "turn-synth-001",
+          "status": "completed",
+          "itemsView": "summary",
+          "items": [
+            {
+              "id": "item-synth-001",
+              "type": "agentMessage",
+              "text": "Synthetic page 1 summary."
+            }
+          ],
+          "startedAt": 1764250005,
+          "completedAt": 1764250012,
+          "durationMs": 7000,
+          "error": null
+        }
+      ],
+      "nextCursor": "cursor-synth-page-2",
+      "backwardsCursor": "cursor-synth-page-1"
+    }
+  },
+  "secondPageRequest": {
+    "id": 8,
+    "method": "thread/turns/list",
+    "params": {
+      "threadId": "thread-synth-worker-001",
+      "cursor": "cursor-synth-page-2",
+      "limit": 1,
+      "itemsView": "summary",
+      "sortDirection": "asc"
+    }
+  },
+  "secondPageResponse": {
+    "id": 8,
+    "result": {
+      "data": [
+        {
+          "id": "turn-synth-002",
+          "status": "completed",
+          "itemsView": "summary",
+          "items": [
+            {
+              "id": "item-synth-002",
+              "type": "agentMessage",
+              "text": "Synthetic page 2 summary."
+            }
+          ],
+          "startedAt": 1764250020,
+          "completedAt": 1764250025,
+          "durationMs": 5000,
+          "error": null
+        }
+      ],
+      "nextCursor": null,
+      "backwardsCursor": "cursor-synth-page-2"
+    }
+  }
+}

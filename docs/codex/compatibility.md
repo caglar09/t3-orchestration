@@ -1,7 +1,7 @@
 # TASK-00 — Codex App compatibility and contract verification
 
 Date: 2026-11-27
-Status: IN PROGRESS — owned-server lifecycle, sequential cross-process idle wake, API restart persistence and refreshed desktop visibility PASS (user-reported, CLI 0.171.0 / App 26.1120.50957); live desktop synchronization FAIL (restart required in observed run), accepted by the owner as a V1 UI limitation; trusted identity, safe ownership and other required gates pending. **NO-GO for TASK-01**.
+Status: **GO for Tasks 1–8** under the V1 durable-inbox + delayed-UI decision — `codex-cli 0.172.0` (`Node v22.23.0`, `Python 3.12.0`), generated App Server JSON schema verified, native plugin/hook/MCP contract verified (`docs/codex/compatibility.md`), and baseline suite PASS (`12` legacy Node + `4` memory + `14` codex diagnostic Python tests = `30` PASS). Delayed native desktop rendering is accepted by the owner for V1; automatic worker wake remains disabled unless verified coordinator identity and exclusive execution ownership are proven, so the durable inbox (`UserPromptSubmit` + `inbox_list`/`inbox_ack`) is the V1 source of truth.
 Base: main `970ecf51ca15de4f1b19f92981f2994f1f2ba73d`; planning branch at `39317f06e29cfd13b35667cc5401700d139a2b1a` before this task. Source review and local test runbook only; no product implementation.
 
 ## Evidence actually collected
@@ -275,6 +275,35 @@ On a disposable local server started with documented Unix socket support, use tw
 
 ### E. Evidence format and release decision
 Record PASS/FAIL/BLOCKED/NOT SUPPORTED per capability, CLI + desktop version, date, exact commands, exit codes, sanitized request/response field names, expected/observed UI results. Redact account emails, plan identifiers, real thread IDs, paths, prompts, tokens, transcripts. Keep synthetic fixture IDs only. Store sanitized captures in codex/test/fixtures/ after execution; no fabricated capture. Re-run baseline if branch changes. Gate stays NO-GO until required tests pass and user reviews any architecture revision.
+
+## Task 0 closure — Codex CLI 0.172.0 schema & baseline verification
+
+Date: 2026-11-27.
+
+### Verified versions and baseline counts
+- **Codex CLI:** `codex-cli 0.172.0`
+- **Node.js:** `v22.23.0` (`>=22` required)
+- **Python:** `3.12.0` (`>=3.9` required for memory)
+- **Baseline test suites (30 total PASS):**
+  - Legacy Node (`node --test hooks/register.test.mjs scripts/accounts.test.mjs`): `12` PASS, `0` FAIL
+  - Memory Python (`python3 scripts/test_memory.py`): `4` PASS, `0` FAIL
+  - Codex diagnostic Python (`python3 -m unittest discover -s docs/codex -p 'test_*.py' -v`): `14` PASS, `0` FAIL
+
+### Generated App Server schema verification (`codex app-server generate-json-schema`)
+Inspected generated JSON schemas from `codex-cli 0.172.0` and stored sanitized synthetic fixtures under `codex/test/fixtures/`:
+- `app-server-contract.json`: pins JSONL stdio transport (no `Content-Length`), handshake, methods, `TurnStatus`, `SandboxPolicy`, `AskForApproval`, and `ServerRequest` refusal mappings.
+- `initialize.json`: `InitializeParams` (`clientInfo`, `capabilities`) + `InitializeResponse` (`codexHome`, `platformFamily`, `platformOs`, `userAgent`) + `initialized` notification.
+- `thread-start.json`: `ThreadStartParams` (`cwd`, `sandbox`, `approvalPolicy`, `ephemeral`, `developerInstructions`) + `ThreadStartResponse` (`thread` required fields including `id`, `sessionId`, `projectId`, `modelProvider`, `status`, `turns`).
+- `turn-start.json`: `TurnStartParams` (`input` text turns, `workspaceWrite` `writableRoots`, `toolOutput` turns with `input: []`, `sandboxPolicy` `readOnly`/`workspaceWrite`) + `TurnStartResponse`.
+- `turn-completed.json`: `TurnCompletedNotification` (`completed`, `interrupted`, `failed` with `TurnError.codexErrorInfo`).
+- `thread-read.json`, `thread-turns-list.json`, `thread-resume.json`: `ThreadReadParams`/`Response`, `ThreadTurnsListParams`/`Response` (`itemsView`, `sortDirection`, `nextCursor`, `backwardsCursor`), and `ThreadResumeParams`/`Response`.
+- `account-read.json`, `account-rate-limits.json`: `GetAccountResponse` (`chatgpt` and `null` unauthenticated) and `GetAccountRateLimitsResponse` (`rateLimits`, nullable `secondary`, `rateLimitsByLimitId`, `ordinaryUsageAllowed`).
+- `server-requests.json`: `ServerRequest` and exact `0.172.0` safe refusal shapes (`item/commandExecution/requestApproval` -> `decline`, `item/fileChange/requestApproval` -> `decline`, `applyPatchApproval` / `execCommandApproval` -> `{ decision: { denied: { rejection } } }`, `mcpServer/elicitation/request` -> `{ action: "decline" }`, `item/permissions/requestApproval` -> `{ permissions: {} }`, unknown methods -> `-32601`).
+
+### Gate decision
+- **GO for Tasks 1–8** under V1 durable-inbox + delayed-UI decision:
+  - Package format: native `.codex-plugin/plugin.json` + `.mcp.json` (relative `command: "node"`, `args: ["src/mcp.mjs"]`) + `hooks/hooks.json` (`UserPromptSubmit` only, bounded timeout, no `Stop` hook loop).
+  - Security & identity: do not trust tool-supplied `session_id` arguments or `cwd`/title inference; bind coordinator explicitly via host/out-of-band pairing, isolate per-project state with single-writer lease (`0700`/`0600`), default to `read-only` sandbox, and refuse/surface unexpected server approval requests.
 
 ## Sources
 - https://learn.chatgpt.com/docs/app-server — protocol, initialization, thread lifecycle, pagination, auth, toolOutput, socket.

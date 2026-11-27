@@ -1,0 +1,138 @@
+{
+  "commandExecutionApproval": {
+    "request": {
+      "id": "srv-req-1",
+      "method": "item/commandExecution/requestApproval",
+      "params": {
+        "threadId": "thread-synth-worker-001",
+        "turnId": "turn-synth-001",
+        "itemId": "item-synth-cmd-1",
+        "command": "echo synth",
+        "cwd": "/tmp/synth-workspace"
+      }
+    },
+    "response": {
+      "id": "srv-req-1",
+      "result": {
+        "decision": "decline"
+      }
+    }
+  },
+  "fileChangeApproval": {
+    "request": {
+      "id": "srv-req-2",
+      "method": "item/fileChange/requestApproval",
+      "params": {
+        "threadId": "thread-synth-worker-001",
+        "turnId": "turn-synth-001",
+        "itemId": "item-synth-file-1"
+      }
+    },
+    "response": {
+      "id": "srv-req-2",
+      "result": {
+        "decision": "decline"
+      }
+    }
+  },
+  "applyPatchApproval": {
+    "request": {
+      "id": "srv-req-3",
+      "method": "applyPatchApproval",
+      "params": {
+        "callId": "call-synth-1",
+        "conversationId": "thread-synth-worker-001",
+        "fileChanges": {}
+      }
+    },
+    "response": {
+      "id": "srv-req-3",
+      "result": {
+        "decision": {
+          "denied": {
+            "rejection": "Automatic approval is disabled"
+          }
+        }
+      }
+    }
+  },
+  "execCommandApproval": {
+    "request": {
+      "id": "srv-req-4",
+      "method": "execCommandApproval",
+      "params": {
+        "callId": "call-synth-2",
+        "conversationId": "thread-synth-worker-001",
+        "command": ["echo", "synth"],
+        "cwd": "/tmp/synth-workspace",
+        "parsedCmd": []
+      }
+    },
+    "response": {
+      "id": "srv-req-4",
+      "result": {
+        "decision": {
+          "denied": {
+            "rejection": "Automatic approval is disabled"
+          }
+        }
+      }
+    }
+  },
+  "mcpServerElicitation": {
+    "request": {
+      "id": "srv-req-5",
+      "method": "mcpServer/elicitation/request",
+      "params": {
+        "threadId": "thread-synth-worker-001",
+        "serverName": "synth-mcp",
+        "mode": "form",
+        "message": "Synthetic prompt",
+        "requestedSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    },
+    "response": {
+      "id": "srv-req-5",
+      "result": {
+        "action": "decline"
+      }
+    }
+  },
+  "permissionsApproval": {
+    "request": {
+      "id": "srv-req-6",
+      "method": "item/permissions/requestApproval",
+      "params": {
+        "threadId": "thread-synth-worker-001",
+        "turnId": "turn-synth-001",
+        "itemId": "item-synth-perm-1",
+        "cwd": "/tmp/synth-workspace",
+        "permissions": {},
+        "startedAtMs": 1764250005000
+      }
+    },
+    "response": {
+      "id": "srv-req-6",
+      "result": {
+        "permissions": {}
+      }
+    }
+  },
+  "unknownServerRequest": {
+    "request": {
+      "id": "srv-req-7",
+      "method": "unknown/serverRequest",
+      "params": {}
+    },
+    "errorResponse": {
+      "id": "srv-req-7",
+      "error": {
+        "code": -32601,
+        "message": "Method not supported"
+      }
+    }
+  }
+}

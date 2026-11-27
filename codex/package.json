@@ -1,0 +1,20 @@
+{
+  "name": "t3-orchestration-codex",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated Codex plugin and local MCP orchestration bridge for t3-orchestration.",
+  "license": "MIT",
+  "author": "sanztheo",
+  "repository": "https://github.com/caglar09/t3-orchestration",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "doctor": "node scripts/doctor.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2"
+  }
+}

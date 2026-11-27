@@ -1,0 +1,71 @@
+{
+  "textTurnRequest": {
+    "id": 3,
+    "method": "turn/start",
+    "params": {
+      "threadId": "thread-synth-worker-001",
+      "input": [
+        {
+          "type": "text",
+          "text": "Inspect the project structure in read-only mode."
+        }
+      ],
+      "approvalPolicy": "never",
+      "sandboxPolicy": {
+        "type": "readOnly"
+      }
+    }
+  },
+  "workspaceWriteTurnRequest": {
+    "id": 4,
+    "method": "turn/start",
+    "params": {
+      "threadId": "thread-synth-worker-002",
+      "input": [
+        {
+          "type": "text",
+          "text": "Update the isolated worktree file."
+        }
+      ],
+      "approvalPolicy": "on-request",
+      "sandboxPolicy": {
+        "type": "workspaceWrite",
+        "writableRoots": ["/tmp/synth-worktrees/worker-002"],
+        "networkAccess": false
+      }
+    }
+  },
+  "toolOutputTurnRequest": {
+    "id": 5,
+    "method": "turn/start",
+    "params": {
+      "threadId": "thread-synth-coord-001",
+      "input": [],
+      "toolOutput": {
+        "name": "t3o_worker_signal",
+        "output": "{\"eventId\":\"proj-synth-001:worker-001:turn-synth-001\",\"status\":\"completed\"}",
+        "retain": true
+      },
+      "approvalPolicy": "never",
+      "sandboxPolicy": {
+        "type": "readOnly"
+      }
+    }
+  },
+  "response": {
+    "id": 3,
+    "result": {
+      "turn": {
+        "id": "turn-synth-001",
+        "items": [],
+        "itemsView": "full",
+        "status": "inProgress",
+        "startedAt": 1764250005,
+        "completedAt": null,
+        "durationMs": null,
+        "error": null,
+        "rootTurnId": null
+      }
+    }
+  }
+}

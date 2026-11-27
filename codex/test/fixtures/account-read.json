@@ -1,0 +1,30 @@
+{
+  "request": {
+    "id": 10,
+    "method": "account/read",
+    "params": {
+      "refreshToken": false
+    }
+  },
+  "chatgptAuthenticatedResponse": {
+    "id": 10,
+    "result": {
+      "account": {
+        "type": "chatgpt",
+        "email": "redacted@example.invalid",
+        "planType": "plus",
+        "workspaceName": "Synthetic Workspace"
+      },
+      "requiresOpenaiAuth": true,
+      "userId": "user-synth-001"
+    }
+  },
+  "unauthenticatedResponse": {
+    "id": 10,
+    "result": {
+      "account": null,
+      "requiresOpenaiAuth": true,
+      "userId": null
+    }
+  }
+}

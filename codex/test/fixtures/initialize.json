@@ -1,0 +1,29 @@
+{
+  "request": {
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "clientInfo": {
+        "name": "t3o_codex_bridge",
+        "title": "T3 Orchestration Codex Bridge",
+        "version": "0.1.0"
+      },
+      "capabilities": {
+        "experimentalApi": false
+      }
+    }
+  },
+  "response": {
+    "id": 1,
+    "result": {
+      "codexHome": "/tmp/synth-codex-home",
+      "platformFamily": "unix",
+      "platformOs": "macos",
+      "userAgent": "codex-app-server/0.172.0"
+    }
+  },
+  "initializedNotification": {
+    "method": "initialized",
+    "params": {}
+  }
+}

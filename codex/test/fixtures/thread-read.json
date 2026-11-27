@@ -1,0 +1,32 @@
+{
+  "request": {
+    "id": 6,
+    "method": "thread/read",
+    "params": {
+      "threadId": "thread-synth-worker-001",
+      "includeTurns": false
+    }
+  },
+  "response": {
+    "id": 6,
+    "result": {
+      "thread": {
+        "cliVersion": "0.172.0",
+        "createdAt": 1764250000,
+        "cwd": "/tmp/synth-workspace",
+        "ephemeral": false,
+        "id": "thread-synth-worker-001",
+        "modelProvider": "openai",
+        "preview": "Inspect the project structure",
+        "projectId": "proj-synth-001",
+        "sessionId": "session-synth-worker-001",
+        "source": "appServer",
+        "status": {
+          "type": "idle"
+        },
+        "turns": [],
+        "updatedAt": 1764250012
+      }
+    }
+  }
+}

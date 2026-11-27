@@ -1,0 +1,60 @@
+{
+  "request": {
+    "id": 11,
+    "method": "account/rateLimits/read",
+    "params": {}
+  },
+  "fullResponse": {
+    "id": 11,
+    "result": {
+      "accountId": "acct-synth-001",
+      "ordinaryUsageAllowed": true,
+      "rateLimits": {
+        "limitId": "codex",
+        "limitName": "Codex",
+        "planType": "plus",
+        "primary": {
+          "usedPercent": 12,
+          "resetsAt": 1764260000,
+          "windowDurationMins": 300
+        },
+        "secondary": {
+          "usedPercent": 24,
+          "resetsAt": 1764850000,
+          "windowDurationMins": 10080
+        },
+        "credits": {
+          "hasCredits": false,
+          "unlimited": false,
+          "balance": null
+        }
+      },
+      "rateLimitsByLimitId": {
+        "codex": {
+          "limitId": "codex",
+          "planType": "plus",
+          "primary": {
+            "usedPercent": 12,
+            "resetsAt": 1764260000,
+            "windowDurationMins": 300
+          },
+          "secondary": null
+        }
+      }
+    }
+  },
+  "nullableResponse": {
+    "id": 11,
+    "result": {
+      "accountId": null,
+      "ordinaryUsageAllowed": null,
+      "rateLimits": {
+        "limitId": null,
+        "planType": null,
+        "primary": null,
+        "secondary": null
+      },
+      "rateLimitsByLimitId": null
+    }
+  }
+}

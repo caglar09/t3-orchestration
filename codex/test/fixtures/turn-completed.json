@@ -1,0 +1,63 @@
+{
+  "completed": {
+    "method": "turn/completed",
+    "params": {
+      "threadId": "thread-synth-worker-001",
+      "turn": {
+        "id": "turn-synth-001",
+        "items": [
+          {
+            "id": "item-synth-001",
+            "type": "agentMessage",
+            "text": "Synthetic read-only inspection complete."
+          }
+        ],
+        "itemsView": "full",
+        "status": "completed",
+        "startedAt": 1764250005,
+        "completedAt": 1764250012,
+        "durationMs": 7000,
+        "error": null,
+        "rootTurnId": null
+      }
+    }
+  },
+  "interrupted": {
+    "method": "turn/completed",
+    "params": {
+      "threadId": "thread-synth-worker-001",
+      "turn": {
+        "id": "turn-synth-002",
+        "items": [],
+        "itemsView": "full",
+        "status": "interrupted",
+        "startedAt": 1764250020,
+        "completedAt": 1764250022,
+        "durationMs": 2000,
+        "error": null,
+        "rootTurnId": null
+      }
+    }
+  },
+  "failed": {
+    "method": "turn/completed",
+    "params": {
+      "threadId": "thread-synth-worker-001",
+      "turn": {
+        "id": "turn-synth-003",
+        "items": [],
+        "itemsView": "full",
+        "status": "failed",
+        "startedAt": 1764250030,
+        "completedAt": 1764250033,
+        "durationMs": 3000,
+        "error": {
+          "message": "Synthetic upstream failure",
+          "codexErrorInfo": "other",
+          "additionalDetails": null
+        },
+        "rootTurnId": null
+      }
+    }
+  }
+}

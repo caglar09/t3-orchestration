@@ -1,0 +1,53 @@
+{
+  "request": {
+    "id": 9,
+    "method": "thread/resume",
+    "params": {
+      "threadId": "thread-synth-worker-001"
+    }
+  },
+  "response": {
+    "id": 9,
+    "result": {
+      "approvalPolicy": "never",
+      "approvalsReviewer": "user",
+      "cwd": "/tmp/synth-workspace",
+      "disabledPluginIds": [],
+      "instructionSources": [],
+      "itemsBackwardsCursor": null,
+      "model": "gpt-5-codex",
+      "modelProvider": "openai",
+      "reasoningEffort": "medium",
+      "sandbox": {
+        "type": "readOnly"
+      },
+      "serviceTier": null,
+      "turnsBackwardsCursor": null,
+      "thread": {
+        "cliVersion": "0.172.0",
+        "createdAt": 1764250000,
+        "cwd": "/tmp/synth-workspace",
+        "ephemeral": false,
+        "id": "thread-synth-worker-001",
+        "modelProvider": "openai",
+        "preview": "Inspect the project structure",
+        "projectId": "proj-synth-001",
+        "sessionId": "session-synth-worker-001",
+        "source": "appServer",
+        "status": {
+          "type": "idle"
+        },
+        "turns": [
+          {
+            "id": "turn-synth-001",
+            "status": "completed",
+            "items": [],
+            "itemsView": "notLoaded",
+            "error": null
+          }
+        ],
+        "updatedAt": 1764250012
+      }
+    }
+  }
+}

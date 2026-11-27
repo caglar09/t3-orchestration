@@ -1,0 +1,18 @@
+{
+  "name": "t3-orchestration-codex",
+  "version": "0.1.0",
+  "description": "Coordinator-worker thread orchestration and sourced long-term memory for Codex.",
+  "author": {
+    "name": "sanztheo",
+    "url": "https://github.com/sanztheo"
+  },
+  "repository": "https://github.com/caglar09/t3-orchestration",
+  "license": "MIT",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
+  "skills": "./skills",
+  "interface": {
+    "displayName": "T3 Orchestration (Codex)",
+    "shortDescription": "Coordinator-worker orchestration and sourced memory for Codex"
+  }
+}

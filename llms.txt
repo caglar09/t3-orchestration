@@ -1,11 +1,14 @@
 # t3-orchestration
 
-> Open-source (MIT) Claude Code plugin for T3 Code. A coordinator thread opens one worker thread per topic; each worker automatically notifies the coordinator when it finishes answering; an optional scheduled memory thread keeps sourced long-term project knowledge. No API key, no server.
+> Open-source (MIT) multi-agent orchestration for Claude Code in T3 Code, and standalone Codex App / Codex CLI (`codex/`). A coordinator thread supervises isolated worker threads per topic and optional sourced long-term memory. No API key, no server.
 
-Repository: https://github.com/sanztheo/t3-orchestration
+Repositories:
+- Upstream: https://github.com/sanztheo/t3-orchestration
+- Codex App support fork: https://github.com/caglar09/t3-orchestration
 
 ## What it does
 
+### Claude Code in T3 Code
 - Coordinator / worker multi-agent workflow inside T3 Code (https://github.com/pingdotgg/t3code).
 - Role detection from T3's native thread metadata: a worker is a thread whose first message was sent by the coordinator through MCP. Manual threads are never affected.
 - Reminder injection per role through the Claude Code mods `prompt.submit` event.
@@ -13,19 +16,37 @@ Repository: https://github.com/sanztheo/t3-orchestration
 - Several Claude accounts: `scripts/accounts.mjs` reads each T3 Claude instance's plan usage (Claude Agent SDK, no prompt sent) and recommends the emptiest account that can still work before each worker launch.
 - Long-term memory: `scripts/memory.py` (SQLite notes, publish, supersedes, revision-checked state) driven by a T3 scheduled task.
 
+### Codex App / Codex CLI (`codex/`, no T3 Code required)
+- Standalone local Codex plugin (`codex/.codex-plugin/plugin.json`) and stdio MCP bridge (`t3o_codex`, `codex/src/mcp.mjs`) owning a `codex app-server` JSON-RPC process. Does not require or modify `~/.t3-orchestration/config.json`.
+- Explicit host-verified `project_setup` pairing with out-of-band `pairingCode`. Manual threads, subagents, internal app jobs, and workers get `null` from `UserPromptSubmit` (`codex/hooks/context.mjs`) and are denied on MCP tools.
+- Default `read-only` workers (`allowWrite: false`, `maxWorkers: 2`); authorized `write` workers require both project and host opt-in and run in isolated per-worker Git worktrees (`worktrees/<workerId>`).
+- V1 durable inbox (`~/.t3-orchestration/codex/projects/<id>/state.json` under single-writer PID lease): terminal `completed`/`failed`/`interrupted` events persist atomically and surface on the next coordinator prompt via `UserPromptSubmit` (`[T3O_CODEX_COORDINATOR_V1]`) and `inbox_list`/`inbox_ack`. No `Stop` hook.
+- Safe handling of App Server approval requests (declined and surfaced as `approval_required`), `account_status` (`unknown`/null-safe, `OPENAI_API_KEY` stripped), and optional manual `memory_pass` (disabled by default) reusing `scripts/memory.py`.
+
 ## Install
 
+### Claude Code in T3 Code
 1. `git clone https://github.com/sanztheo/t3-orchestration.git`
 2. Add `--plugin-dir <absolute path>` to the Claude provider's launch arguments in T3 Code.
 3. In a new Claude thread of the project, run `/t3-orchestration:setup`.
 
+### Codex App / Codex CLI
+1. `git clone https://github.com/caglar09/t3-orchestration.git`
+2. `npm ci --prefix codex && node codex/scripts/doctor.mjs`
+3. Load `codex/` as a local Codex plugin (or project-local `.codex/` config), trust `UserPromptSubmit` (`node hooks/context.mjs`) in `Settings > Hooks` or `/hooks`, and run `project_setup` per `codex/skills/setup/SKILL.md`.
+
 ## Docs
 
-- [README](https://github.com/sanztheo/t3-orchestration/blob/main/README.md): how it works, FAQ, limits
-- [Setup skill](https://github.com/sanztheo/t3-orchestration/blob/main/skills/setup/SKILL.md): install, add a project, update, uninstall
-- [Orchestrate skill](https://github.com/sanztheo/t3-orchestration/blob/main/skills/orchestrate/SKILL.md): coordinator and worker rules
-- [Memory skill](https://github.com/sanztheo/t3-orchestration/blob/main/skills/memory/SKILL.md): incremental memory pass
+- [README](https://github.com/caglar09/t3-orchestration/blob/main/README.md): overview, Claude/T3 and Codex App workflows, FAQ, limits
+- [Claude/T3 Setup skill](https://github.com/sanztheo/t3-orchestration/blob/main/skills/setup/SKILL.md): install, add a project, update, uninstall
+- [Claude/T3 Orchestrate skill](https://github.com/sanztheo/t3-orchestration/blob/main/skills/orchestrate/SKILL.md): coordinator and worker rules
+- [Claude/T3 Memory skill](https://github.com/sanztheo/t3-orchestration/blob/main/skills/memory/SKILL.md): incremental memory pass
+- [Codex Installation](https://github.com/caglar09/t3-orchestration/blob/main/docs/codex/installation.md): local install, hook trust, pairing, defaults, recovery, uninstall
+- [Codex Security](https://github.com/caglar09/t3-orchestration/blob/main/docs/codex/security.md): threat model, identity verification, canonical paths, leases, approval refusal, redaction
+- [Codex Compatibility](https://github.com/caglar09/t3-orchestration/blob/main/docs/codex/compatibility.md): verified versions (`codex-cli 0.172.0`, desktop `26.1120.50957`) and contract matrix
+- [Codex Setup / Orchestrate / Memory skills](https://github.com/caglar09/t3-orchestration/blob/main/codex/skills/setup/SKILL.md)
 
 ## Limits
 
-Claude Code only (not Codex); best effort, no retries; failed turns (StopFailure) send no signal; settings-hook events do not run in mods under Claude Code's managed-organisation guard.
+- **Claude/T3 path:** Claude Code only inside T3 Code (not T3-hosted Codex); best effort, no retries; failed turns (`StopFailure`) send no signal; settings-hook events do not run in mods under Claude Code's managed-organisation guard.
+- **Codex App V1 path:** macOS local first (`codex-cli 0.172.0`, desktop `26.1120.50957`, Node >=22, Python >=3.9); delayed desktop UI rendering (may require refresh or reopen); no idle push guarantee (durable inbox is source of truth); read-only default with explicit isolated worktree opt-in; no auto-approval; manual memory pass only (disabled by default).
