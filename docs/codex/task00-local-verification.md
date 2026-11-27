@@ -36,6 +36,22 @@ First command sends no prompt. It uses a read-only command execution with a harm
 
 Second command uses the existing authenticated ChatGPT account, may consume quota, starts two separately registered synthetic threads, observes their completion events, checks bounded appServer source discovery and requests interruption of a third synthetic turn on one of the same two owned threads. It never interrupts an existing real chat. If completion wins the race, INCONCLUSIVE is correct; rerun only if you want additional synthetic inference. If B starts before A terminal notification, this is evidence of overlapping pending turns, not a throughput benchmark. Return all terminal output and exit status. Failed terminal event remains untested unless actually observed; do not manufacture errors or consume quota to cause a rate-limit failure.
 
+## 2b. Test C troubleshooting — direct project mode
+
+Owner-run Test A/B passed on b9f3121; Test C showed missing marker and unavailable echo tool. This does not establish the plugin was installed or hooks trusted. Opening a project is not equivalent to installing a marketplace plugin. The earlier Interrupt timeout exceeded the documented three-second maximum; corrected in the generator. To isolate the plugin packaging layer, use a NEW temporary root:
+
+```bash
+git pull --ff-only
+python3 -m unittest discover -s docs/codex -p 'test_*.py' -v
+PROBE_ROOT="$(mktemp -d)/workspace"
+python3 docs/codex/task00_remaining.py prepare "$PROBE_ROOT" --mode direct
+git -C "$PROBE_ROOT" init -q
+echo "$PROBE_ROOT"
+(cd "$PROBE_ROOT" && codex mcp list)
+```
+
+Open this new project, review project trust and hook trust separately, and start a new local chat. Direct mode generates .codex/config.toml, .codex/hooks.json and .codex/probe.py, without a marketplace. Test echo and injection using section 3 prompts; collect the report using the new PROBE_ROOT. If CLI lists t3o_probe but app does not expose it, investigate desktop loading/trust; if CLI does not list it, investigate project config loading. If no event log, distinguish untrusted or undiscovered hooks from execution failure. Do not bypass trust or change global config. If plugin mode is retried, explicitly select the repo marketplace and install the plugin before opening a new chat. Direct mode is diagnostic only, not proof of plugin packaging or caller identity. New assertions are not yet executed in the assistant runtime.
+
 ## 3. Disposable native plugin / MCP / command hook and Stop MCP hook
 
 ```bash
