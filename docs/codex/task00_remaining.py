@@ -45,24 +45,33 @@ def append(root, record):
 
 
 def prepare(root, mode='plugin'):
-    if mode not in ('plugin', 'direct'):
+    if mode not in ('plugin', 'direct', 'legacy'):
         raise ValueError('unknown diagnostic mode')
     root = root.resolve()
     root.mkdir(mode=0o700, parents=False, exist_ok=False)
     (root/'.codex').mkdir()
-    plugin = root/'plugins'/NAME if mode == 'plugin' else root/'.codex'
-    if mode == 'plugin':
+    name = 't3o-task00-compat' if mode == 'legacy' else NAME
+    marketplace = 't3o-task00-compat-local' if mode == 'legacy' else 't3o-task00-local'
+    plugin = root/'plugins'/name if mode != 'direct' else root/'.codex'
+    if mode != 'direct':
         (plugin/'hooks').mkdir(parents=True)
         (root/'.agents/plugins').mkdir(parents=True)
     (root/'salt').write_text(secrets.token_hex(32)); (root/'salt').chmod(0o600)
     shutil.copyfile(__file__, plugin/'probe.py')
     def write(path, data): path.write_text(json.dumps(data, indent=2)+'\n')
-    if mode == 'plugin':
-        write(root/'.agents/plugins/marketplace.json', {'name':'t3o-task00-local','plugins':[{'name':NAME,'source':{'source':'local','path':'./plugins/'+NAME},'policy':{'installation':'AVAILABLE','authentication':'ON_INSTALL'},'category':'Productivity'}]})
-        (root/'.codex/config.toml').write_text('[plugins."'+NAME+'@t3o-task00-local"]\nenabled = true\n')
-        write(plugin/'plugin.json', {'$schema':'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json','name':NAME,'version':'0.1.0','description':'Disposable read-only diagnostic','extensions':{'com.openai':{'hooks':'./hooks/hooks.json','interface':{'displayName':'T3O TASK-00 Probe','shortDescription':'Local diagnostic only'}}}})
-        # Absolute paths refer only to the isolated workspace, not the installed cache.
-        write(plugin/'mcp.json', {'$schema':'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json','mcpServers':{'t3o_probe':{'type':'stdio','command':sys.executable,'args':[str(plugin/'probe.py'),'mcp',str(root)]}}})
+    if mode != 'direct':
+        write(root/'.agents/plugins/marketplace.json', {'name':marketplace,'plugins':[{'name':name,'source':{'source':'local','path':'./plugins/'+name},'policy':{'installation':'AVAILABLE','authentication':'ON_INSTALL'},'category':'Productivity'}]})
+        (root/'.codex/config.toml').write_text('[plugins."'+name+'@'+marketplace+'"]\nenabled = true\n')
+        if mode == 'legacy':
+            # v0.171.0 skips portable AgentPlugin hooks and rejects absolute
+            # stdio executables in portable mcp.json. Use the native format.
+            (plugin/'.codex-plugin').mkdir()
+            write(plugin/'.codex-plugin/plugin.json', {'name':name,'version':'0.1.1','description':'Disposable Codex native diagnostic','mcpServers':'./.mcp.json','hooks':'./hooks/hooks.json','interface':{'displayName':'T3O TASK-00 Compatibility Probe','shortDescription':'Local diagnostic only'}})
+            write(plugin/'.mcp.json', {'mcpServers':{'t3o_probe':{'command':sys.executable,'args':[str(plugin/'probe.py'),'mcp',str(root)]}}})
+        else:
+            write(plugin/'plugin.json', {'$schema':'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json','name':NAME,'version':'0.1.0','description':'Disposable read-only diagnostic','extensions':{'com.openai':{'hooks':'./hooks/hooks.json','interface':{'displayName':'T3O TASK-00 Probe','shortDescription':'Local diagnostic only'}}}})
+            # Absolute paths refer only to the isolated workspace, not the installed cache.
+            write(plugin/'mcp.json', {'$schema':'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json','mcpServers':{'t3o_probe':{'type':'stdio','command':sys.executable,'args':[str(plugin/'probe.py'),'mcp',str(root)]}}})
     else:
         # JSON string quoting is compatible with TOML basic strings for these paths.
         config = '[mcp_servers.t3o_probe]\ncommand = ' + json.dumps(sys.executable, ensure_ascii=False) + '\n'
@@ -73,7 +82,7 @@ def prepare(root, mode='plugin'):
     command = shlex.join([sys.executable,str(plugin/'probe.py'),'hook',str(root)])
     hooks = {name:[{'hooks':[{'type':'command','command':command,'timeout':3 if name == 'Interrupt' else 5}]}] for name in EVENTS}
     hooks['Stop'][0]['hooks'].append({'type':'mcp_tool','server':'t3o_probe','tool':'echo_probe','input':{'origin':'hook','session_id':'${session_id}','turn_id':'${turn_id}'},'timeout':5})
-    write(plugin/('hooks/hooks.json' if mode == 'plugin' else 'hooks.json'), {'hooks':hooks})
+    write(plugin/('hooks/hooks.json' if mode != 'direct' else 'hooks.json'), {'hooks':hooks})
     print('Disposable project created:',root)
     print('Diagnostic mode:', mode)
 
@@ -108,7 +117,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action',choices=['prepare','hook','mcp','report'])
     parser.add_argument('root',nargs='?',type=Path)
-    parser.add_argument('--mode', choices=['plugin','direct'], default='plugin', help='prepare only: isolate project-scoped MCP/hooks from plugin packaging')
+    parser.add_argument('--mode', choices=['plugin','direct','legacy'], default='legacy', help='prepare only: isolate project-scoped MCP/hooks from plugin packaging')
     args = parser.parse_args()
     if args.action == 'prepare':
         root = args.root or Path(tempfile.mkdtemp(prefix='t3o-task00-'))/'workspace'
