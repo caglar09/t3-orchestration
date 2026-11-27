@@ -40,4 +40,24 @@ class TestProbe(unittest.TestCase):
             self.assertEqual(replies[1]['result']['tools'][0]['name'],'echo_probe')
             self.assertFalse(replies[2]['result']['structuredContent']['authenticated'])
 
+    def test_direct_mode_has_no_plugin_dependency(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)/'workspace'
+            p.prepare(root, mode='direct')
+            self.assertFalse((root/'.agents/plugins/marketplace.json').exists())
+            self.assertFalse((root/'plugins').exists())
+            self.assertTrue((root/'.codex/probe.py').is_file())
+            config = (root/'.codex/config.toml').read_text()
+            self.assertIn('[mcp_servers.t3o_probe]', config)
+            self.assertNotIn('[plugins.', config)
+            hooks = json.loads((root/'.codex/hooks.json').read_text())['hooks']
+            self.assertEqual(hooks['Interrupt'][0]['hooks'][0]['timeout'], 3)
+            self.assertEqual(hooks['Stop'][0]['hooks'][1]['server'], 't3o_probe')
+    def test_plugin_interrupt_timeout(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)/'workspace'
+            p.prepare(root)
+            hooks = json.loads((root/'plugins/t3o-task00-probe/hooks/hooks.json').read_text())['hooks']
+            self.assertEqual(hooks['Interrupt'][0]['hooks'][0]['timeout'], 3)
+
 if __name__=='__main__': unittest.main()
