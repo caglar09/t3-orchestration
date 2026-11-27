@@ -81,7 +81,7 @@ def prepare(root, mode='plugin'):
     import shlex
     command = shlex.join([sys.executable,str(plugin/'probe.py'),'hook',str(root)])
     hooks = {name:[{'hooks':[{'type':'command','command':command,'timeout':3 if name == 'Interrupt' else 5}]}] for name in EVENTS}
-    hooks['Stop'][0]['hooks'].append({'type':'mcp_tool','server':'t3o_probe','tool':'echo_probe','input':{'origin':'hook','session_id':'${session_id}','turn_id':'${turn_id}'},'timeout':5})
+    hooks['Stop'][0]['hooks'].append({'type':'mcp_tool','server':'t3o_probe','tool':'stop_probe','input':{'origin':'hook','session_id':'${session_id}','turn_id':'${turn_id}'},'timeout':5})
     write(plugin/('hooks/hooks.json' if mode != 'direct' else 'hooks.json'), {'hooks':hooks})
     print('Disposable project created:',root)
     print('Diagnostic mode:', mode)
@@ -99,11 +99,14 @@ def mcp(root):
                 version = params.get('protocolVersion')
                 result = {'protocolVersion':version if version in ('2024-11-05','2025-03-26','2025-06-18','2025-11-25') else '2025-03-26','capabilities':{'tools':{}},'serverInfo':{'name':'t3o_probe','version':'0.1.0'}}
             elif method == 'tools/list':
-                result = {'tools':[{'name':'echo_probe','description':'Diagnostic echo; claimed IDs are never authenticated','inputSchema':{'type':'object','properties':{key:{'type':'string'} for key in (*IDS,'origin')},'additionalProperties':False},'annotations':{'readOnlyHint':True}}]}
-            elif method == 'tools/call' and params.get('name') == 'echo_probe':
+                schema = {'type':'object','properties':{key:{'type':'string'} for key in (*IDS,'origin')},'additionalProperties':False}
+                result = {'tools':[{'name':name,'description':description,'inputSchema':schema,'annotations':{'readOnlyHint':True}} for name, description in (('echo_probe','Diagnostic echo; claimed IDs are never authenticated'),('stop_probe','Diagnostic Stop hook; returns a non-blocking hook decision'))]}
+            elif method == 'tools/call' and params.get('name') in ('echo_probe', 'stop_probe'):
                 args = params.get('arguments') or {}; meta = params.get('_meta') or {}
                 if not isinstance(args, dict) or not isinstance(meta, dict): raise ValueError('invalid args')
-                result, record = echo_record(args, meta, salt); append(root, record)
+                result, record = echo_record(args, meta, salt)
+                record['tool'] = params['name']; append(root, record)
+                if params['name'] == 'stop_probe': result = {'continue': True}
                 result = {'content':[{'type':'text','text':json.dumps(result)}],'structuredContent':result}
             elif method == 'ping': result = {}
             else: error = {'code':-32601,'message':'Method not supported'}
