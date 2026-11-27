@@ -10,6 +10,17 @@ import {
 } from "./config.mjs";
 import { doctor } from "../scripts/doctor.mjs";
 import { createPairingTicket } from "../scripts/pair.mjs";
+import {
+  buildWorkerBrief,
+  readT3Providers,
+  selectModelForTask,
+} from "./t3-providers.mjs";
+import {
+  defaultT3RoutingPath,
+  getProjectRouting,
+  parseTierAssignment,
+  setProjectTierRoute,
+} from "./t3-routing.mjs";
 
 const BEGIN_MARKER = "# BEGIN t3-orchestration-codex";
 const END_MARKER = "# END t3-orchestration-codex";
@@ -445,6 +456,28 @@ function parseFlags(args) {
       flags.configPath = path.resolve(args[++i]);
     } else if (arg === "--plugin-root" && args[i + 1]) {
       flags.pluginRoot = path.resolve(args[++i]);
+    } else if (arg === "--project" && args[i + 1]) {
+      flags.project = args[++i];
+    } else if (arg === "--tier" && args[i + 1]) {
+      flags.tier = args[++i];
+    } else if (arg === "--driver" && args[i + 1]) {
+      flags.driver = args[++i];
+    } else if (arg === "--set" && args[i + 1]) {
+      flags.set = args[++i];
+    } else if (arg === "--settings" && args[i + 1]) {
+      flags.settingsPath = path.resolve(args[++i]);
+    } else if (arg === "--manifest" && args[i + 1]) {
+      flags.manifestPath = path.resolve(args[++i]);
+    } else if (arg === "--routing" && args[i + 1]) {
+      flags.routingPath = path.resolve(args[++i]);
+    } else if (arg === "--coordinator" && args[i + 1]) {
+      flags.coordinator = args[++i];
+    } else if (arg === "--title" && args[i + 1]) {
+      flags.title = args[++i];
+    } else if (arg === "--brief" && args[i + 1]) {
+      flags.brief = args[++i];
+    } else if (arg === "--rules" && args[i + 1]) {
+      flags.rules = args[++i];
     } else if (arg === "--help" || arg === "-h") {
       flags.help = true;
     } else if (arg.startsWith("-")) {
@@ -457,15 +490,18 @@ function parseFlags(args) {
   return { positionals, flags };
 }
 
-const HELP_TEXT = `t3o-codex — Local Codex App orchestration CLI
+const HELP_TEXT = `t3o-codex — Local Codex App & T3 Code Multi-LLM orchestration CLI
 
 Usage:
-  t3o-codex init [dir] [options]       Initialize Codex orchestration in a project
+  t3o-codex init [dir] [options]       Initialize standalone Codex orchestration in a project
   t3o-codex update [dir] [options]     Update .codex paths and project settings safely
   t3o-codex status [dir] [options]     Inspect project registration and .codex files
   t3o-codex uninstall [dir] [options]  Remove t3o_codex entries (preserves user state)
   t3o-codex doctor                     Run environment & manifest diagnostics
   t3o-codex pair                       Generate a single-use out-of-band pairing code
+  t3o-codex t3-providers [options]     List enabled T3 Code LLM providers & models
+  t3o-codex t3-route [options]         Select or configure simple/standard/complex T3 LLM routing
+  t3o-codex t3-brief [options]         Generate modelSelection + wake-up brief for t3_thread_launch
 
 Options:
   --name <slug>            Project slug (default: derived from directory name)
@@ -477,6 +513,17 @@ Options:
   --library-path <path>    Custom canonical memory library directory
   --config <path>          Override ~/.t3-orchestration/codex/config.json
   --no-exclude             Skip adding .codex/ to .git/info/exclude
+  --project <slug>         T3 project slug (for t3-route / t3-brief)
+  --tier <tier>            Task complexity tier: simple | standard | complex
+  --driver <driver>        Preferred T3 provider driver or instanceId
+  --set <spec>             Save policy: <tier>=<instanceId>:<model>[:<effort>]
+  --coordinator <id>       T3 coordinator threadId (for t3-brief)
+  --title <text>           Worker topic title (for t3-brief)
+  --brief <text>           Worker task brief (for t3-brief)
+  --rules <text>           Optional project rules block (for t3-brief)
+  --settings <path>        Override ~/.t3/userdata/settings.json
+  --manifest <path>        Override ~/.t3/userdata/model-manifest.json
+  --routing <path>         Override ~/.t3-orchestration/t3-routing.json
   --json                   Print machine-readable JSON output
   -h, --help               Show this help
 `;
@@ -538,12 +585,94 @@ export async function runCli(
     } else if (subcommand === "pair") {
       const stateRoot = flags.configPath ? path.dirname(flags.configPath) : undefined;
       result = createPairingTicket(stateRoot ? { stateRoot } : {});
+    } else if (subcommand === "t3-providers") {
+      result = readT3Providers({
+        ...(flags.settingsPath ? { settingsPath: flags.settingsPath } : {}),
+        ...(flags.manifestPath ? { manifestPath: flags.manifestPath } : {}),
+      });
+    } else if (subcommand === "t3-route") {
+      const routingPath = flags.routingPath ?? defaultT3RoutingPath();
+      if (flags.set) {
+        if (!flags.project) {
+          throw new Error("--project <slug> is required when using --set.");
+        }
+        const parsed = parseTierAssignment(flags.set);
+        const saved = setProjectTierRoute({
+          routingPath,
+          projectName: flags.project,
+          ...parsed,
+        });
+        result = { project: flags.project, routingPath, saved };
+      } else {
+        const { providers } = readT3Providers({
+          ...(flags.settingsPath ? { settingsPath: flags.settingsPath } : {}),
+          ...(flags.manifestPath ? { manifestPath: flags.manifestPath } : {}),
+        });
+        const policy = flags.project ? getProjectRouting(routingPath, flags.project) : null;
+        result = selectModelForTask({
+          providers,
+          tier: flags.tier ?? "standard",
+          preferredDriver: flags.driver ?? null,
+          routingPolicy: policy,
+        });
+      }
+    } else if (subcommand === "t3-brief") {
+      const routingPath = flags.routingPath ?? defaultT3RoutingPath();
+      const { providers } = readT3Providers({
+        ...(flags.settingsPath ? { settingsPath: flags.settingsPath } : {}),
+        ...(flags.manifestPath ? { manifestPath: flags.manifestPath } : {}),
+      });
+      const policy = flags.project ? getProjectRouting(routingPath, flags.project) : null;
+      const route = selectModelForTask({
+        providers,
+        tier: flags.tier ?? "standard",
+        preferredDriver: flags.driver ?? null,
+        routingPolicy: policy,
+      });
+      const isClaudeWorker = route.provider.driver === "claudeAgent";
+      const briefText = buildWorkerBrief({
+        projectName: flags.project,
+        coordinatorThreadId: flags.coordinator,
+        taskTitle: flags.title ?? "Worker task",
+        brief: flags.brief,
+        isClaudeWorker,
+        routing: route,
+        projectRules: flags.rules ?? "",
+      });
+      result = {
+        tier: route.tier,
+        source: route.source,
+        provider: route.provider,
+        isClaudeWorker,
+        modelSelection: route.modelSelection,
+        brief: briefText,
+      };
     } else {
       throw new Error(`Unknown command: ${subcommand}. Run "t3o-codex --help".`);
     }
 
     if (flags.json || subcommand === "doctor" || subcommand === "pair") {
       io.stdout(`${JSON.stringify(result, null, 2)}\n`);
+    } else if (subcommand === "t3-providers") {
+      const lines = ["[t3o-codex] Enabled T3 Code LLM providers:"];
+      for (const p of result.providers) {
+        const models = p.models.length > 0
+          ? p.models.map((m) => `${m.slug} [${m.tier}]`).join(", ")
+          : "(provider default / no manifest models)";
+        lines.push(`  - ${p.instanceId} (driver=${p.driver}, label="${p.label}"): ${models}`);
+      }
+      io.stdout(`${lines.join("\n")}\n`);
+    } else if (subcommand === "t3-route") {
+      if (result.saved) {
+        io.stdout(`[t3o-codex] Saved routing policy for "${result.project}" in ${result.routingPath}\n`);
+      } else {
+        io.stdout(
+          `[t3o-codex] tier=${result.tier} (${result.source}): instanceId=${result.modelSelection.instanceId}, model=${result.modelSelection.model ?? "default"}, effort=${result.modelSelection.options[0].value}\n` +
+          `  reason: ${result.reason}\n`,
+        );
+      }
+    } else if (subcommand === "t3-brief") {
+      io.stdout(`${result.brief}\n`);
     } else if (subcommand === "init" || subcommand === "update") {
       io.stdout(
         `[t3o-codex] ${subcommand} complete for "${result.project.name}" (${result.project.root})\n` +

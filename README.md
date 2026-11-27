@@ -133,6 +133,18 @@ Requirements: macOS (`darwin`), `codex-cli 0.172.0` / Codex Desktop `26.1120.509
 
 Full guide: [docs/codex/installation.md](docs/codex/installation.md).
 
+### Codex Coordinator inside T3 Code (Multi-LLM Routing)
+
+Want a **Codex thread inside T3 Code** to route simple/standard/complex tasks across **any LLM configured in T3 Code** (`codex`, `opencode`, `antigravity`, `claudeAgent`, etc.) with automatic `[T3O_SIGNAL_V1]` wake-ups?
+
+```bash
+t3o-codex t3-providers
+t3o-codex t3-route --project my-app --set simple=antigravity:gemini-3.8-flash-low:low
+t3o-codex t3-route --project my-app --set complex=codex:gpt-6.1-sol:high
+```
+
+See [docs/codex/t3-multi-llm.md](docs/codex/t3-multi-llm.md) and [codex/skills/t3-setup/SKILL.md](codex/skills/t3-setup/SKILL.md).
+
 ## FAQ
 
 **What is t3-orchestration?**

@@ -251,3 +251,152 @@ test("runCli dispatches init, status, update, uninstall, and --help cleanly", as
   assert.equal(await runCli(["uninstall", repo, "--config", configPath, "--json"], uninstIo), 0);
   assert.equal(JSON.parse(uninstIo.out).removedFromConfig, true);
 });
+
+test("runCli supports t3-providers, t3-route, and t3-brief for T3 Code multi-LLM orchestration", async () => {
+  const base = makeTempDir();
+  const settingsPath = path.join(base, "settings.json");
+  const manifestPath = path.join(base, "model-manifest.json");
+  const routingPath = path.join(base, "t3-routing.json");
+
+  fs.writeFileSync(
+    settingsPath,
+    JSON.stringify({
+      providerInstances: {
+        codex: { driver: "codex", enabled: true, config: { apiKey: "secret-should-not-leak" } },
+        antigravity: { driver: "antigravity", displayName: "Antigravity First", enabled: true, config: {} },
+        opencode: { driver: "opencode", displayName: "OpenCode", enabled: true, config: {} },
+        claudeAgent: { driver: "claudeAgent", enabled: false, config: {} },
+      },
+    }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify({
+      manifest: {
+        currentModels: {
+          codex: ["gpt-6-luna", "gpt-6.1-sol"],
+          antigravity: ["gemini-3.8-flash-low", "gemini-4-carbon"],
+        },
+        providers: {
+          codex: {
+            models: [
+              { slug: "gpt-6-luna", name: "GPT-6 Luna", status: "current" },
+              { slug: "gpt-6.1-sol", name: "GPT-6.1 Sol", status: "current" },
+            ],
+          },
+          antigravity: {
+            models: [
+              { slug: "gemini-3.8-flash-low", name: "Gemini 3.8 Flash Low", status: "current" },
+              { slug: "gemini-4-carbon", name: "Gemini 4 Carbon", status: "current" },
+            ],
+          },
+        },
+      },
+    }),
+    "utf8",
+  );
+
+  const capture = () => {
+    let out = "";
+    let err = "";
+    return {
+      stdout: (s) => { out += s; },
+      stderr: (s) => { err += s; },
+      get out() { return out; },
+      get err() { return err; },
+    };
+  };
+
+  // 1. t3-providers lists enabled providers without secrets
+  const provIo = capture();
+  assert.equal(
+    await runCli(["t3-providers", "--settings", settingsPath, "--manifest", manifestPath, "--json"], provIo),
+    0,
+  );
+  assert.equal(provIo.out.includes("secret-should-not-leak"), false);
+  const provJson = JSON.parse(provIo.out);
+  assert.deepEqual(
+    provJson.providers.map((p) => p.instanceId),
+    ["codex", "antigravity", "opencode"],
+  );
+
+  // 2. t3-route --set persists explicit policy and resolves it
+  const setIo = capture();
+  assert.equal(
+    await runCli(
+      [
+        "t3-route",
+        "--project", "demo",
+        "--set", "simple=antigravity:gemini-3.8-flash-low:low",
+        "--routing", routingPath,
+        "--settings", settingsPath,
+        "--manifest", manifestPath,
+        "--json",
+      ],
+      setIo,
+    ),
+    0,
+  );
+  const setJson = JSON.parse(setIo.out);
+  assert.equal(setJson.saved.tiers.simple.instanceId, "antigravity");
+
+  const routeIo = capture();
+  assert.equal(
+    await runCli(
+      [
+        "t3-route",
+        "--project", "demo",
+        "--tier", "simple",
+        "--routing", routingPath,
+        "--settings", settingsPath,
+        "--manifest", manifestPath,
+        "--json",
+      ],
+      routeIo,
+    ),
+    0,
+  );
+  const routeJson = JSON.parse(routeIo.out);
+  assert.equal(routeJson.source, "policy");
+  assert.equal(routeJson.modelSelection.instanceId, "antigravity");
+  assert.equal(routeJson.modelSelection.model, "gemini-3.8-flash-low");
+
+  // 3. Invalid --set with max effort exits non-zero
+  const badIo = capture();
+  assert.equal(
+    await runCli(
+      ["t3-route", "--project", "demo", "--set", "complex=codex:gpt-6.1-sol:max", "--routing", routingPath],
+      badIo,
+    ),
+    1,
+  );
+  assert.match(badIo.err, /effort/i);
+
+  // 4. t3-brief produces modelSelection + non-Claude wake-up brief
+  const briefIo = capture();
+  assert.equal(
+    await runCli(
+      [
+        "t3-brief",
+        "--project", "demo",
+        "--coordinator", "th_coord_9",
+        "--title", "Audit routes",
+        "--brief", "Check all express routes for auth guards.",
+        "--tier", "simple",
+        "--routing", routingPath,
+        "--settings", settingsPath,
+        "--manifest", manifestPath,
+        "--json",
+      ],
+      briefIo,
+    ),
+    0,
+  );
+  const briefJson = JSON.parse(briefIo.out);
+  assert.equal(briefJson.isClaudeWorker, false);
+  assert.equal(briefJson.modelSelection.instanceId, "antigravity");
+  assert.match(briefJson.brief, /\[T3O_WORKER_V1\]/);
+  assert.match(briefJson.brief, /t3_thread_send/);
+  assert.match(briefJson.brief, /\[T3O_SIGNAL_V1\]/);
+});
