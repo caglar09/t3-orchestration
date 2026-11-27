@@ -127,11 +127,15 @@ Reported CLI 0.171.0, Node v22.23.0, Python 3.11.5, checkout b9f3121. User-provi
 - Test C preparation and Git init PASS. Screenshot shows portable manifest, marketplace and project config created. Desktop conversation reports no injected marker and echo_probe unavailable. No event report or plugin installation/trust state supplied yet. FAIL for observed availability, exact cause not established.
 - Updated diagnostic generator supports --mode direct (project-local .codex/config.toml and .codex/hooks.json) to isolate plugin discovery from hooks/MCP. Interrupt hook timeout corrected to 3 seconds. New test assertions added; latest revision has not been executed on macOS or in assistant runtime. Repo files verified via GitHub read-back. Retest only C, and optionally run updated offline suite. Direct mode does not prove plugin packaging or trusted identity. Do not start product implementation until the remaining security gates are settled.
 
+## Additional Test C UI evidence — marketplace discovery
+
+Owner screenshot shows the local T3O TASK-00 Probe detail page, category Productivity, version 0.1.0, Settings and Try now controls. This is PASS for marketplace discovery and manifest presentation; it does not establish per-conversation runtime activation, MCP connection or hook trust. Previous desktop and CLI prompts reported no marker and unavailable echo_probe. CLI screenshot also showed three warnings; their contents have not been supplied. Next isolate the existing plugin first: inspect Try now in a new chat in the same disposable project, inspect plugin Settings, and collect CLI startup warnings (F2) and /hooks, plus the sanitized event report. Do not upgrade the CLI yet solely for this test; preserve the tested version. Direct project mode remains a fallback, not a prerequisite. Screenshot not committed (unrelated personal plugin names).
+
 ## Capability matrix
 
 | Capability | Documentation result | Runtime result / gate |
 | --- | --- | --- |
-| Local marketplace / plugin | root plugin.json; extensions.com.openai hooks; local installation; user trust separate | FAIL observed availability in Test C; install/trust status unconfirmed |
+| Local marketplace / plugin | root plugin.json; extensions.com.openai hooks; local installation; user trust separate | PASS marketplace/manifest discovery (owner screenshot); runtime activation and trust unconfirmed |
 | MCP local stdio | command/args/env/cwd; lazy startup can defer connection | FAIL observed tool availability; direct project configuration test pending |
 | Hook context | UserPromptSubmit with session_id, turn_id; additionalContext | FAIL observed injected marker; hook trust and direct mode pending |
 | Native MCP hook | type:mcp_tool; event-field expansion; existing connection only; no SessionEnd support | BLOCKED: check support and caller isolation |
