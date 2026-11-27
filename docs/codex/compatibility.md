@@ -146,6 +146,10 @@ python3 -m unittest discover -s docs/codex -p 'test_*.py' -v
 
 Add the new workspace in Codex App, select **T3O TASK-00 Compatibility Probe** from its local marketplace and use Try now in a new local chat. Call echo_probe with origin=direct and session_id=FAKE_TASK00_ID. Review and trust the probe hooks in Settings or CLI /hooks; send the hook marker prompt in a new chat. Run `python3 docs/codex/task00_remaining.py report "$PROBE_ROOT"` and send sanitized results. If it fails, send startup warnings (F2) and hook list; do not blindly retry or alter global settings.
 
+## Native compatibility retest — still blocked
+
+Owner supplied a screenshot showing `echo_probe` unavailable in the native conversation after the compatibility-format retest. The screenshot alone does not establish whether the new package was enabled, project trust was granted, or MCP discovery failed after startup. No new event report or CLI warning details supplied for this run. Do not infer the exact root cause or claim a fix. Stop iterating on plugin packaging and use the already implemented `--mode direct` control: start the generated stdio server manually with an initialize/tools/list request, verify the exact project is trusted in Codex CLI, use `/mcp` and `/hooks` in a fresh CLI session, then repeat in desktop. Record redacted outputs for each boundary. The portable and compatibility packages are not release-ready. No inference is needed for initial discovery. Do not change global MCP settings or bypass hook/project trust. No new production code change. Reference: https://developers.openai.com/plugins/build/plugins (trusted-project config and separate hook trust).
+
 ## Capability matrix
 
 | Capability | Documentation result | Runtime result / gate |
