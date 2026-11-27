@@ -33,6 +33,8 @@ def hook_record(event, root, salt):
 def echo_record(args, meta, salt):
     record = {'kind': 'mcp_call', 'argument_keys': sorted(args), 'meta_keys': sorted(meta),
               'claimed_ids': {key: digest(args.get(key), salt) for key in IDS},
+              'host_ids': {'session_id': digest(meta.get('sessionId'), salt),
+                           'thread_id': digest(meta.get('threadId'), salt)},
               'claimed_origin': args.get('origin') if args.get('origin') in ('hook', 'direct') else 'other'}
     return {'marker': 'TASK00_MCP_OK', 'authenticated': False}, record
 
