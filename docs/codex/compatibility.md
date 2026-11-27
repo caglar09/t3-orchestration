@@ -154,6 +154,12 @@ Owner supplied a screenshot showing `echo_probe` unavailable in the native conve
 
 The owner ran the legacy-generated `plugins/t3o-task00-compat/probe.py` directly with JSON-RPC initialize (protocolVersion 2025-03-26) and tools/list over stdin. Both returned valid success responses; serverInfo name t3o_probe, capabilities.tools present; tools/list includes echo_probe with its input schema and readOnlyHint. This confirms the Python script starts in the user's environment and handles these two requests outside Codex. It does not prove full MCP lifecycle negotiation, Codex-managed startup or tool invocation. The earlier missing .codex/probe.py was a path mismatch (legacy versus direct mode), not a protocol error. Next use a distinct direct-mode workspace to isolate project-local config loading; compare /mcp and /hooks in a fresh trusted CLI session before sending inference. No further plugin manifest changes pending this evidence.
 
+## Direct project mode — CLI MCP discovery PASS on 0.172.0
+
+Owner screenshot of a fresh CLI session shows Codex v0.172.0, the disposable workspace, and /mcp reporting t3o_probe: connected (1 tool). /hooks reports aggregate Active/Installed counts including UserPromptSubmit 5/5, SubagentStart 2/2, SubagentStop 1/1, Stop 4/4, Interrupt 1/1. These counts include unrelated configured hooks; they do not independently prove that the diagnostic hook executed or was loaded. The CLI version changed from 0.171.0, so this is not a controlled same-version comparison with the earlier plugin failures. No raw screenshot or unrelated server list retained.
+
+Result: direct project-scoped MCP discovery and connection PASS on CLI 0.172.0. Actual echo invocation, diagnostic command hook injection, Stop MCP hook execution, desktop direct-mode compatibility, plugin packaging on 0.172.0 and verified root caller identity remain pending. Next send a single harmless prompt in the existing direct-mode CLI session asking for the injected diagnostic marker without spelling it out, and call echo_probe with origin=direct and session_id=FAKE_TASK00_ID. Read the diagnostic report from the same workspace; require command_hook UserPromptSubmit, direct mcp_call and inspect Stop events. The tool's authenticated=false is intentional. Do not infer trustworthy identity from counts or caller-supplied fields. No further package changes before collecting evidence.
+
 ## Capability matrix
 
 | Capability | Documentation result | Runtime result / gate |
